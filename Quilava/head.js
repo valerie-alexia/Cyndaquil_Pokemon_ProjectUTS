@@ -62,8 +62,7 @@ function main() {
   const eye = createSemicircle(1.0, 20, scleraColor);
   const eyeBuffers = initBuffers(gl, eye.vertices, eye.indices, eye.colors);
 
-  // Eye Components
-  // Iris (Red Part)
+  // Eye Components, Iris (Red Part), Pupil (Black Part), Highlight (White Part)
   const irisColor = [0.8, 0.1, 0.1]; // Dark red color
   const eyeIris = createSemicircle(1.0, 20, irisColor);
   const eyeIrisBuffers = initBuffers(
@@ -72,8 +71,6 @@ function main() {
     eyeIris.indices,
     eyeIris.colors
   );
-
-  // Pupil (Black Part)
   const pupilColor = [0.0, 0.0, 0.0]; // Black color
   const eyePupil = createSemicircle(1.0, 20, pupilColor);
   const eyePupilBuffers = initBuffers(
@@ -82,8 +79,6 @@ function main() {
     eyePupil.indices,
     eyePupil.colors
   );
-
-  // Highlight (White Part)
   const highlightColor = [1.0, 1.0, 1.0]; // Pure white
   const eyeHighlight = createSemicircle(1.0, 20, highlightColor);
   const eyeHighlightBuffers = initBuffers(
@@ -93,11 +88,10 @@ function main() {
     eyeHighlight.colors
   );
 
-  // NEW: Ear geometry
+  // Ear geometry
   const earColor = [0.22, 0.36, 0.49]; // Same as top of head
   const ear = createHalfEllipticCone(0.5, 0.2, 1.0, 20, earColor); // radiusX, radiusZ, height, segments, color
   const earBuffers = initBuffers(gl, ear.vertices, ear.indices, ear.colors);
-  // NEW: Inner ear geometry
   const innerEarColor = [0.8, 0.1, 0.1]; // Red
   const innerEarTriangle = createTriangle(innerEarColor);
   const innerEarBuffers = initBuffers(
@@ -106,6 +100,10 @@ function main() {
     innerEarTriangle.indices,
     innerEarTriangle.colors
   );
+
+  // NEW: Body geometry
+  const body = createHyperboloidOneSheet(0.7, 0.9, 1.2, 30, 30); // a, b, c (length), segmentsU, segmentsV
+  const bodyBuffers = initBuffers(gl, body.vertices, body.indices, body.colors);
 
   // 4. Mouse Controls
   let modelYRotation = 0.0;
@@ -161,6 +159,13 @@ function main() {
     mat4.rotate(worldMatrix, worldMatrix, modelYRotation, [0, 1, 0]);
 
     // --- DRAW THE PARTS ---
+    // Draw the Body
+    drawPart(gl, programInfo, worldMatrix, bodyBuffers, {
+      translation: [0, -0.9, 0.09],
+      rotation: [-Math.PI / 2, 0, 0],
+      scale: [0.7, 0.7, 0.5],
+    });
+
     // Draw the Head
     drawPart(gl, programInfo, worldMatrix, headBuffers, {
       translation: [0, 0, 0],
@@ -175,25 +180,23 @@ function main() {
       scale: [1.1, 1.7, 0.7],
     });
 
-    // Define a base Z rotation to orient the semicircle with the flat edge up
+    // Draw the Eyes
     const baseEyeRotationZ = -Math.PI / 2;
-
-    // Left Eye Transformations (Your perfected values)
+    // Left Eye
     const leftEyeBaseTransform = {
       translation: [-0.57, 0.1, 0.7],
       rotation: [0.05, -1, -1.7 + baseEyeRotationZ],
       scale: [0.3, 0.3, 0.1],
     };
 
-    // Right Eye Transformations (Mirrored from Left)
+    // Right Eye
     const rightEyeBaseTransform = {
       translation: [0.57, 0.1, 0.7],
       rotation: [0.05, 1, 1.7 + baseEyeRotationZ],
       scale: [0.3, 0.3, 0.1],
     };
 
-    // --- LEFT EYE  ---
-    // Left Sclera
+    // 1. Left Sclera
     drawPart(gl, programInfo, worldMatrix, eyeBuffers, {
       translation: leftEyeBaseTransform.translation,
       rotation: leftEyeBaseTransform.rotation,
@@ -217,7 +220,6 @@ function main() {
         leftEyeBaseTransform.scale[2],
       ],
     });
-
     // 3. Left Pupil
     drawPart(gl, programInfo, worldMatrix, eyePupilBuffers, {
       translation: [
@@ -236,7 +238,6 @@ function main() {
         leftEyeBaseTransform.scale[2],
       ],
     });
-
     // 4. Left Highlight
     drawPart(gl, programInfo, worldMatrix, eyeHighlightBuffers, {
       translation: [
@@ -256,7 +257,7 @@ function main() {
       ],
     });
 
-    // --- RIGHT EYE (DONT CHANGE) ---
+    // Right Eye
     // Right Sclera
     drawPart(gl, programInfo, worldMatrix, eyeBuffers, {
       translation: [0.57, 0.1, 0.7],
@@ -281,7 +282,6 @@ function main() {
         rightEyeBaseTransform.scale[2],
       ],
     });
-
     // 3. Right Pupil
     drawPart(gl, programInfo, worldMatrix, eyePupilBuffers, {
       translation: [
@@ -300,7 +300,6 @@ function main() {
         rightEyeBaseTransform.scale[2],
       ],
     });
-
     // 4. Right Highlight
     drawPart(gl, programInfo, worldMatrix, eyeHighlightBuffers, {
       translation: [
@@ -320,7 +319,7 @@ function main() {
       ],
     });
 
-    // Your perfected transformations for the outer ears
+    // Draw the Ears
     const leftEarTransform = {
       translation: [-0.6, 0.7, 0.1],
       rotation: [1, 2.3, -1],
@@ -331,123 +330,134 @@ function main() {
       rotation: [-1, 2.3, 1],
       scale: [0.5, 0.4, 1.1],
     };
-
-    // Draw Left Ear (Outer)
     drawPart(gl, programInfo, worldMatrix, earBuffers, leftEarTransform);
-    // NEW: Draw Left Ear (Inner Red Triangle)
+    // Left Inner Ear
     drawPart(gl, programInfo, worldMatrix, innerEarBuffers, {
       translation: [
         leftEarTransform.translation[0],
         leftEarTransform.translation[1],
         leftEarTransform.translation[2] + 0.01,
-      ], // Same position + tiny Z offset
+      ],
       rotation: [
         leftEarTransform.rotation[0] + 2,
         leftEarTransform.rotation[1] + 3.5,
         leftEarTransform.rotation[2] + 0.3,
-      ], // Same rotation
+      ],
       scale: [
         leftEarTransform.scale[0] * 0.3,
         leftEarTransform.scale[1] * 0.4,
         leftEarTransform.scale[2] * 2,
-      ], // Scaled down
+      ],
     });
 
-    // Draw Right Ear (Outer)
+    // Draw Right Ear
     drawPart(gl, programInfo, worldMatrix, earBuffers, rightEarTransform);
-    // NEW: Draw Right Ear (Inner Red Triangle)
+    // Right Inner Ear
     drawPart(gl, programInfo, worldMatrix, innerEarBuffers, {
       translation: [
         rightEarTransform.translation[0],
         rightEarTransform.translation[1],
         rightEarTransform.translation[2] + 0.01,
-      ], // Same position + tiny Z offset
+      ],
       rotation: [
         rightEarTransform.rotation[0] - 2,
         rightEarTransform.rotation[1] + 3.5,
         rightEarTransform.rotation[2] - 0.3,
-      ], // Same rotation
+      ],
       scale: [
         rightEarTransform.scale[0] * 0.3,
         rightEarTransform.scale[1] * 0.4,
         rightEarTransform.scale[2] * 2,
-      ], // Scaled down
+      ],
     });
-
     requestAnimationFrame(render);
   }
   requestAnimationFrame(render);
 }
 
-// =================================================================
 // --- HELPER FUNCTIONS ---
-// =================================================================
-// NEW: Added the createTriangle function back
+// hyperboloid of one sheet
+function createHyperboloidOneSheet(a, b, c, segmentsU, segmentsV) {
+  const vertices = [];
+  const indices = [];
+  const colors = [];
+  const topColor = [0.22, 0.36, 0.49];
+  const bottomColor = [0.98, 0.94, 0.76];
+  for (let i = 0; i <= segmentsU; i++) {
+    const u = -1.0 + (2.0 * i) / segmentsU;
+    for (let j = 0; j <= segmentsV; j++) {
+      const v = (j / segmentsV) * 2 * Math.PI;
+      const x = a * Math.cosh(u) * Math.cos(v);
+      const y = b * Math.cosh(u) * Math.sin(v);
+      const z = c * Math.sinh(u);
+      vertices.push(x, y, z);
+      if (y >= 0) {
+        colors.push(...topColor);
+      } else {
+        colors.push(...bottomColor);
+      }
+    }
+  }
+  for (let i = 0; i < segmentsU; i++) {
+    for (let j = 0; j < segmentsV; j++) {
+      const first = i * (segmentsV + 1) + j;
+      const second = first + segmentsV + 1;
+      indices.push(first, second, first + 1);
+      indices.push(second, second + 1, first + 1);
+    }
+  }
+  return { vertices, indices, colors };
+}
+
+// Triangle
 function createTriangle(color) {
   const vertices = [-1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, -1.0, 0.0];
   const indices = [0, 1, 2];
   const colors = [...color, ...color, ...color];
   return { vertices, indices, colors };
 }
-// NEW: Function to create a half elliptic cone
+
+// half elliptic cone
 function createHalfEllipticCone(radiusX, radiusZ, height, segments, color) {
   const vertices = [];
   const indices = [];
   const colors = [];
-
-  // Tip vertex
   vertices.push(0, height / 2, 0);
   colors.push(...color);
-
-  // Base vertices
   for (let i = 0; i <= segments; i++) {
-    // Loop for half an ellipse, from -90 to +90 degrees
     const angle = (i / segments) * Math.PI - Math.PI / 2;
     const x = radiusX * Math.cos(angle);
     const z = radiusZ * Math.sin(angle);
     vertices.push(x, -height / 2, z);
     colors.push(...color);
   }
-
-  // Indices for the curved side (a fan from the tip)
   for (let i = 1; i <= segments; i++) {
     indices.push(0, i, i + 1);
   }
-
-  // Indices for the flat back face
-  // Center of the flat back is the average of the first and last base points
   const backCenterIndex = vertices.length / 3;
   vertices.push(0, -height / 2, 0);
   colors.push(...color);
   for (let i = 1; i < segments; i++) {
     indices.push(backCenterIndex, i, i + 1);
   }
-
   return { vertices, indices, colors };
 }
 
+// semicircle
 function createSemicircle(radius, segments, color) {
   const vertices = [];
   const indices = [];
   const colors = [];
-
-  // Center vertex (origin)
   vertices.push(0, 0, 0);
   colors.push(...color);
-
-  // Edge vertices for the arc
   for (let i = 0; i <= segments; i++) {
-    // Loop from 0 to PI for a semicircle
     const angle = (i / segments) * Math.PI;
     vertices.push(radius * Math.cos(angle), radius * Math.sin(angle), 0);
     colors.push(...color);
   }
-
-  // Indices to form triangles
   for (let i = 1; i <= segments; i++) {
     indices.push(0, i, i + 1);
   }
-
   return { vertices, indices, colors };
 }
 function drawPart(gl, programInfo, baseMatrix, buffers, T) {
@@ -478,7 +488,7 @@ function createEllipticParaboloid(a, b, height, segments) {
     for (let j = 0; j <= segments; j++) {
       const v = (j / segments) * 2 * Math.PI;
       const x = a * u * Math.cos(v);
-      const y = b * u * Math.sin(v); // 'y' is the vertical axis for the snout
+      const y = b * u * Math.sin(v);
       const z = height * u * u;
       vertices.push(x, y, z);
 
