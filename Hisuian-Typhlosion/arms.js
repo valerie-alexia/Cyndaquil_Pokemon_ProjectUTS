@@ -26,7 +26,7 @@ export class ArmShape {
         this._MMatrix = _Mmatrix;
 
         // Basic proportions
-        var shoulderCenter = { x: 1.2 * side, y: -0.2, z: 0.15 };
+        var shoulderCenter = { x: 1 * side, y: -0.2, z: 0.15 };
         var upperLen = 1.3;
         // Panjang telapak tangan
         var foreLen = 0.4;
@@ -39,7 +39,7 @@ export class ArmShape {
         var clawColor = { r: 0.9, g: 0.8, b: 0.6 };
 
         // 1) Shoulder ellipse
-        this.addEllipsoid(0.35, 0.28, 0.35, 24, 32, shoulderCenter, armColor);
+        this.addEllipsoid(0.55, 0.28, 0.55, 24, 32, shoulderCenter, armColor);
 
         // 2) Upper arm (elliptical cylinder, lebih tebal di bahu)
         var upperCenter = { 
@@ -49,7 +49,7 @@ export class ArmShape {
         };
         this.addEllipticalCylinder(
             0.32, 0.28,  // rxTop, rzTop
-            0.34, 0.34,  // rxBottom, rzBottom
+            0.50, 0.54,  // rxBottom, rzBottom
             upperLen, 
             28, 1, 
             upperCenter, 
@@ -95,6 +95,8 @@ export class ArmShape {
         this.addCone(0.06, 0.30, 24, {x: foreCenter.x - spread*side, y: wristY, z: fingerBaseZ}, clawColor, armDirY); 
         this.addCone(0.065, 0.34, 24, {x: foreCenter.x, y: wristY, z: fingerBaseZ+0.02}, clawColor, armDirY); 
         this.addCone(0.055, 0.28, 24, {x: foreCenter.x + spread*side, y: wristY, z: fingerBaseZ}, clawColor, armDirY); 
+
+        LIBS.rotateZ(this.POSITION_MATRIX, 0.7*side);
     }
 
     // === Geometry helpers ===

@@ -1,6 +1,7 @@
 import { HeadShape } from "./head.js";
 import { BodyShape } from "./body.js";
 import { ArmShape } from "./arms.js";
+import { LegsShape } from "./legs.js";
 
 function main() {
     /** @type {HTMLCanvasElement} */
@@ -94,9 +95,16 @@ function main() {
     var leftArm = new ArmShape(GL, SHADER_PROGRAM, _position, _color, _Mmatrix, -1);
     leftArm.setup();
 
+    var leftLeg = new LegsShape(GL, SHADER_PROGRAM, _position, _color, _Mmatrix, +1);
+    leftLeg.setup();
+    var rightLeg = new LegsShape(GL, SHADER_PROGRAM, _position, _color, _Mmatrix, -1);
+    rightLeg.setup();
+
     body.childs.push(head);
     body.childs.push(rightArm);
     body.childs.push(leftArm);
+    body.childs.push(leftLeg);
+    body.childs.push(rightLeg);
 
     var PROJMATRIX = LIBS.get_projection(40, CANVAS.width / CANVAS.height, 1, 100);
     var MOVEMATRIX = LIBS.get_I4();
