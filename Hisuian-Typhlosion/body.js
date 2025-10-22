@@ -98,6 +98,58 @@ function generateHyper1d(a, b, c, stack, step, uBottomTrimRatio = 0) {
     }
     return { vertices, faces };
 }
+function generateCustomTail(length, baseRadius, tipRadius, numSegments, numSpikes, topColor, bottomColor) {
+    const vertices = [];
+    const faces = [];
+    const stack = numSegments * 2; // Lebih banyak detail secara vertikal
+    const step = 16; // Cukup detail di sekeliling
+
+    for (let i = 0; i <= stack; i++) {
+        const u = i / stack; // dari 0 ke 1
+        const currentRadius = baseRadius - u * (baseRadius - tipRadius);
+        const y = -length * u; // Ekor tumbuh ke bawah
+        
+        for (let j = 0; j <= step; j++) {
+            const v = (j / step) * 2 * Math.PI;
+            
+            // Bentuk dasar elips/berlian
+            let x = currentRadius * Math.cos(v);
+            let z = currentRadius * Math.sin(v) * 0.7; // Agak pipih
+
+            // Tambahkan tonjolan/spike di sepanjang ekor
+            if (i > stack * 0.2 && i < stack * 0.8 && numSpikes > 0) {
+                const spikeFrequency = Math.floor(stack / numSpikes);
+                if (i % spikeFrequency === 0) {
+                    const spikeFactor = 0.1 * currentRadius; // Ukuran spike
+                    x += spikeFactor * Math.cos(v) * (1 + Math.sin(v * 4)); // Posisi spike
+                    z += spikeFactor * Math.sin(v) * (1 + Math.cos(v * 4));
+                }
+            }
+
+            // Warna berdasarkan posisi Y
+            let r, g, bcol;
+            if (x > 0) { // Sisi atas (atau sisi yang ingin diwarnai ungu)
+                r = topColor.r; g = topColor.g; bcol = topColor.b;
+            } else { // Sisi bawah (krem)
+                r = bottomColor.r; g = bottomColor.g; bcol = bottomColor.b;
+            }
+            vertices.push(x, y, z, r, g, bcol);
+        }
+    }
+
+    // Generate faces (indices)
+    for (let i = 0; i < stack; i++) {
+        for (let j = 0; j < step; j++) {
+            const first = i * (step + 1) + j;
+            const second = first + 1;
+            const third = first + (step + 1);
+            const fourth = third + 1;
+            faces.push(first, second, fourth);
+            faces.push(first, fourth, third);
+        }
+    }
+    return { vertices, faces };
+}
 
 export class BodyShape {
     GL = null;
@@ -181,6 +233,43 @@ export class BodyShape {
             const y = neckHeight + Math.sin(angle * 2) * 0.1;
             appendGeometry(flameGeometry.vertices, flameGeometry.faces, x, y, z, flameColor);
         }
+
+        // ===== ADD TAIL (NEW SECTION) =====
+        // ===== ADD TAIL (CUSTOM SHAPE) =====
+        const tailTopColor = { r: 0.25, g: 0.2, b: 0.3 }; // Warna ungu gelap
+        const tailBottomColor = { r: 0.9, g: 0.8, b: 0.6 }; // Warna krem
+
+        const customTailGeo = generateCustomTail(
+            1.5, // Panjang total ekor
+            0.6, // Radius dasar ekor
+            0.1, // Radius ujung ekor
+            5,   // Jumlah segmen utama
+            3,   // Jumlah tonjolan/spikes
+            tailTopColor, tailBottomColor
+        );
+        
+        // Buat matriks transformasi untuk menempatkan dan memutar ekor
+        const tailTransform = LIBS.get_I4();
+        LIBS.translate(tailTransform, 0, -3.5, -0.6); // Pindahkan ke bawah dan belakang badan
+        LIBS.rotateX(tailTransform, Math.PI * 0.2); // Sedikit menekuk ke bawah
+        LIBS.rotateY(tailTransform, Math.PI * 0.1); // Sedikit miring ke samping
+        
+        // Terapkan transformasi ke vertex ekor
+        const transformedTailVertices = [];
+        for (let i = 0; i < customTailGeo.vertices.length; i += 6) {
+            const originalVertex = [
+                customTailGeo.vertices[i],
+                customTailGeo.vertices[i+1],
+                customTailGeo.vertices[i+2],
+                1 // W
+            ];
+            const transformedPoint = LIBS.multiply(tailTransform, originalVertex);
+            transformedTailVertices.push(
+                transformedPoint[0], transformedPoint[1], transformedPoint[2],
+                customTailGeo.vertices[i+3], customTailGeo.vertices[i+4], customTailGeo.vertices[i+5] // Warna
+            );
+        }
+        appendGeometry(transformedTailVertices, customTailGeo.faces);
 
         this.MOVE_MATRIX = LIBS.get_I4();
     }
