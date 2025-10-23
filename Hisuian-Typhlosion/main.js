@@ -151,11 +151,40 @@ function main() {
     CANVAS.addEventListener("mouseout", mouseUp, false);
     CANVAS.addEventListener("mousemove", mouseMove, false);
 
+    /*================ DEFINE ANIMATION VARIABLES =============== */
     var SPEED = 0.05;
+
     var nod = false;
-    var shakeHead = false;
     let nodStartTime = 0;
     const nodDuration = 1000;
+
+    var shakeHead = false;
+    let shakeStartTime = 0;
+    const shakeDuration = 1000;
+
+    let isJumping = false;
+    let jumpStartTime = 0;
+    const jumpDuration = 800; // Durasi lompat (ms)
+    const jumpHeight = 3.0;   // Ketinggian lompat
+    let jumpProgress = 0; // 0 mulai, 1 selesai 
+
+
+    let isPulsing = false;
+    let pulseStartTime = 0;
+    const pulseDuration = 1200;
+    const pulseSpeed = 0.005;
+    const minScale = 0.9;
+    const maxScale = 1.1;
+
+
+    let isRotatingArb = false;
+    let rotateArbStartTime = 0;
+    const rotateArbDuration = 2000;
+    const rotateArbSpeed = 0.003;
+    const rotateAxis = [1, 1, 1]; // Contoh: sumbu diagonal X & Y
+
+    var isAnyAnimationRunning = () => nod || shakeHead || isJumping || isPulsing || isRotatingArb;
+    
     var keyDown = function (e) {
         if (e.key === 'w') {
             dY -= SPEED;
@@ -176,10 +205,28 @@ function main() {
             nod = true;
             nodStartTime = performance.now();
         }
-        else if (e.key === 'M') {
+        else if (e.key === 'm') {
             // Animasi Shake head
             shakeHead = true;
-            nodStartTime = performance.now();
+            shakeStartTime = performance.now();
+        }
+        else if (e.code === 'Space' || e.key === ' ') {
+            console.log('ppp');
+
+            // Hanya mulai jika tidak sedang melompat atau animasi lain
+            // if (!isAnyAnimationRunning) {
+            isJumping = true;
+            jumpProgress = 0;
+            jumpStartTime = performance.now();
+            // }
+        }
+        else if (e.key === 'p') {
+            isPulsing = true;
+            pulseStartTime = performance.now();
+        }
+        else if (e.key === 'r') {
+            isRotatingArb = true;
+            rotateArbStartTime = performance.now();
         }
     };
 
@@ -212,13 +259,55 @@ function main() {
             PHI += dY;
         }
 
+
+        const currentTime = performance.now();
+
+        // Animasi Lompat
+        jumpProgress = 0;
+        let armSwingAngle = 0;
+        let legTuckAngle = 0;
+        if (isJumping) {
+            const elapsedTime = currentTime - jumpStartTime;
+            if (elapsedTime < jumpDuration) {
+                jumpProgress = elapsedTime / jumpDuration; // Progress 0 -> 1
+                const t = jumpProgress;
+                const jumpOffset = -4 * jumpHeight * t * (t - 1); // Parabola Y offset
+                LIBS.translateY(MOVEMATRIX, jumpOffset); // Terapkan ke gerakan global
+                const maxArmSwing = -0.8; // Ayunan tangan ke atas
+                const maxLegTuck = 0.15;  // Tekukan kaki ke belakang
+                armSwingAngle = Math.sin(t * Math.PI) * maxArmSwing;
+                legTuckAngle = Math.sin(t * Math.PI) * maxLegTuck;
+
+            } else {
+                isJumping = false;
+            }
+        }
+
+        // Terapkan animasi lompat ke TANGAN (jika ada)
+        LIBS.set_I4(rightArm.MOVE_MATRIX); // Reset
+        LIBS.set_I4(leftArm.MOVE_MATRIX);  // Reset
+        if (isJumping) {
+            LIBS.rotateX(rightArm.MOVE_MATRIX, armSwingAngle);
+            LIBS.rotateX(leftArm.MOVE_MATRIX, armSwingAngle);
+        }
+
+        // Terapkan animasi lompat ke KAKI (jika ada)
+        LIBS.set_I4(rightLeg.MOVE_MATRIX); // Reset
+        LIBS.set_I4(leftLeg.MOVE_MATRIX);  // Reset
+        if (isJumping) {
+            LIBS.rotateX(rightLeg.MOVE_MATRIX, legTuckAngle);
+            LIBS.rotateX(leftLeg.MOVE_MATRIX, legTuckAngle);
+        }
+
+        LIBS.set_I4(head.MOVE_MATRIX);
+
+
         // Animasi ngangguk
         if (nod) {
             const elapsedTime = time - nodStartTime;
             const nodSpeed = 0.002;
             if (elapsedTime < nodDuration) {
                 const nodPhase = elapsedTime * nodSpeed;
-                LIBS.set_I4(head.MOVE_MATRIX);
                 // Nods rotate up and down
                 LIBS.rotateX(head.MOVE_MATRIX, Math.sin(nodPhase * Math.PI * 2) * 0.2);
             }
@@ -227,15 +316,42 @@ function main() {
             }
         };
 
-         // Animasi shake head
+        // Animasi Pulse
+
+        if (isPulsing) {
+            const elapsedTime = currentTime - pulseStartTime;
+            if (elapsedTime < pulseDuration) {
+                const pulsePhase = elapsedTime * pulseSpeed;
+                // Skala berdenyut antara minScale dan maxScale
+                const scaleFactor = minScale + (maxScale - minScale) * (Math.sin(pulsePhase * Math.PI * 2) * 0.5 + 0.5);
+                // Terapkan scaling ke body.MOVE_MATRIX (atau MOVEMATRIX jika ingin skala global)
+                LIBS.scale(body.MOVE_MATRIX, scaleFactor, scaleFactor, scaleFactor);
+                // Catatan: Scaling ini mungkin mempengaruhi posisi child jika pivot tidak di (0,0,0)
+            } else {
+                isPulsing = false;
+            }
+        }
+
+        // Rotasi Arbitrary
+        if (isRotatingArb) { 
+            const elapsedTime = currentTime - rotateArbStartTime;
+            if (elapsedTime < rotateArbDuration) {
+                const rotateAngle = elapsedTime * rotateArbSpeed * Math.PI * 2;
+                // Terapkan rotasi ke lengan kanan di sekitar sumbu rotateAxis
+                LIBS.rotate(MOVEMATRIX, rotateAngle, rotateAxis);
+            } else {
+                isRotatingArb = false;
+            }
+        }
+
+        // Animasi shake head
         if (shakeHead) {
-            const elapsedTime = time - nodStartTime;
-            const nodSpeed = 0.002;
-            if (elapsedTime < nodDuration) {
-                const nodPhase = elapsedTime * nodSpeed;
-                LIBS.set_I4(head.MOVE_MATRIX);
+            const elapsedTime = time - shakeStartTime;
+            const shakeSpeed = 0.002;
+            if (elapsedTime < shakeDuration) {
+                const shakePhase = elapsedTime * shakeSpeed;
                 // Shake head rotate up and down
-                LIBS.rotateY(head.MOVE_MATRIX, Math.sin(nodPhase * Math.PI * 2) * 0.2);
+                LIBS.rotateY(head.MOVE_MATRIX, Math.sin(shakePhase * Math.PI * 2) * 0.2);
             }
             else {
                 shakeHead = false; // Stop
