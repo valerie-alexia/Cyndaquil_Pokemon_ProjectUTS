@@ -27,6 +27,14 @@ export class HeadShape {
     // Jika body berotasi +90 derajat (PI/2), kepala harus berotasi -90 derajat (-PI/2)
     crawlRotX = -Math.PI / 2;
     
+    // --- BARU: Properti untuk warna dan animasi api ---
+    standOuterColor = [1.0, 0.6, 0.1]; // Oranye
+    crawlOuterColor = [1.0, 0.3, 0.0]; // Merah-oranye
+    standInnerColor = [1.0, 0.9, 0.2]; // Kuning
+    crawlInnerColor = [1.0, 0.6, 0.1]; // Orange
+
+    _tempFlameVertices = []; // Array sementara
+
   constructor(GL, SHADER_PROGRAM, _position, _color, _MMatrix) {
     this.GL = GL;
     this.SHADER_PROGRAM = SHADER_PROGRAM;
@@ -156,9 +164,9 @@ export class HeadShape {
     this.addObject(highlightGeo.vertices, highlightGeo.indices, rightHighlightMatrix); 
     // ** MODIFIKASI: API 2D "Mohawk" dari DEPAN ke BELAKANG ** // ===================================================================
     const baseRotationY = 1.5; // Rotasi Y dasar kepala
-    const triangleGeoOuter = this.createTriangle(flameOuterColor);
-    const triangleGeoInner = this.createTriangle(flameInnerColor); // Mendefinisikan paku api sebagai garis lurus dari depan (Z positif) ke belakang (Z negatif)
-
+    // const triangleGeoOuter = this.createTriangle(flameOuterColor);
+    // const triangleGeoInner = this.createTriangle(flameInnerColor); // Mendefinisikan paku api sebagai garis lurus dari depan (Z positif) ke belakang (Z negatif)
+    const triangleGeo = this.createTrianglePositions();
     // t = translation [x, y, z], r = rotation [x, y, z], s = scale [x, y, z]
     const rotationFlip = Math.PI; // 180 derajat untuk membalik segitiga
 
@@ -188,8 +196,9 @@ export class HeadShape {
       const outerRotation = spike.r;
 
       this.FLAME_OBJECTS.push({
-        vertices: triangleGeoOuter.vertices,
-        indices: triangleGeoOuter.indices,
+        positions: triangleGeo.positions, // ganti vertices
+        indices: triangleGeo.indices,
+        colorType: 'outer',
         localMatrix: this.createTransformMatrixLIBS({
           translation: outerTranslation,
           rotation: outerRotation,
@@ -206,8 +215,9 @@ export class HeadShape {
       const innerRightRotation = spike.r;
 
       this.FLAME_OBJECTS.push({
-        vertices: triangleGeoInner.vertices,
-        indices: triangleGeoInner.indices,
+        positions: triangleGeo.positions, // ganti vertices
+        indices: triangleGeo.indices,
+        colorType: 'inner',
         localMatrix: this.createTransformMatrixLIBS({
           translation: innerRightTranslation,
           rotation: innerRightRotation,
@@ -228,8 +238,9 @@ export class HeadShape {
       const innerLeftRotation = spike.r;
 
       this.FLAME_OBJECTS.push({
-        vertices: triangleGeoInner.vertices,
-        indices: triangleGeoInner.indices,
+        positions: triangleGeo.positions, // ganti vertices
+        indices: triangleGeo.indices,
+        colorType: 'inner',
         localMatrix: this.createTransformMatrixLIBS({
           translation: innerLeftTranslation,
           rotation: innerLeftRotation,
@@ -272,24 +283,32 @@ export class HeadShape {
         this.GL.STATIC_DRAW
       );
     });
-    this.FLAME_OBJECTS.forEach((child) => {
-      child.vertexBuffer = this.GL.createBuffer();
-      this.GL.bindBuffer(this.GL.ARRAY_BUFFER, child.vertexBuffer);
-      this.GL.bufferData(
-        this.GL.ARRAY_BUFFER,
-        new Float32Array(child.vertices),
-        this.GL.STATIC_DRAW
-      );
+    this.FLAME_OBJECTS.forEach((obj) => { // 'obj' bukan 'child'
+      obj.vertexBuffer = this.GL.createBuffer();
+      this.GL.bindBuffer(this.GL.ARRAY_BUFFER, obj.vertexBuffer);
+      
+      const initialColor = (obj.colorType === 'outer') ? this.standOuterColor : this.standInnerColor;
+      const initialVertices = [];
+      for (let i = 0; i < obj.positions.length; i += 3) {
+          initialVertices.push(obj.positions[i], obj.positions[i+1], obj.positions[i+2]);
+          initialVertices.push(...initialColor);
+      }
 
-      child.indexBuffer = this.GL.createBuffer();
-      this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, child.indexBuffer);
       this.GL.bufferData(
-        this.GL.ELEMENT_ARRAY_BUFFER,
-        new Uint16Array(child.indices),
-        this.GL.STATIC_DRAW
-      );
-    });
-    this.childs.forEach((child) => child.setup());
+        this.GL.ARRAY_BUFFER,
+        new Float32Array(initialVertices), // Gunakan data awal
+        this.GL.DYNAMIC_DRAW // <-- PENTING: Ubah ke DYNAMIC_DRAW
+      );
+
+      obj.indexBuffer = this.GL.createBuffer();
+      this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, obj.indexBuffer);
+      this.GL.bufferData(
+        this.GL.ELEMENT_ARRAY_BUFFER,
+        new Uint16Array(obj.indices),
+        this.GL.STATIC_DRAW
+      );
+    });
+    this.childs.forEach((child) => child.setup());
   }
 
   render(PARENT_MATRIX) {
@@ -359,10 +378,18 @@ export class HeadShape {
   }
 
   // --- Fungsi Animasi BARU ---
-    
-    _lerp(a, b, t) {
-        return a + (b - a) * t;
-    }
+    
+    _lerp(a, b, t) {
+        return a + (b - a) * t;
+    }
+
+  // --- BARU ---
+  _lerpColor(colorA, colorB, t) {
+      const r = this._lerp(colorA[0], colorB[0], t);
+      const g = this._lerp(colorA[1], colorB[1], t);
+      const b = this._lerp(colorA[2], colorB[2], t);
+      return [r, g, b];
+  }
 
     toggleCrawlState() {
         if (this.isAnimating) return;
@@ -426,6 +453,16 @@ export class HeadShape {
       ...color,
     ];
     return { vertices: v, indices: [0, 1, 2] };
+  }
+
+  // --- BARU: Fungsi untuk api ---
+  createTrianglePositions() {
+      const v = [
+          -1.0, 1.0, 0.0,
+           1.0, 1.0, 0.0,
+           0.0, -1.0, 0.0
+      ];
+      return { positions: v, indices: [0, 1, 2] };
   }
 
   createHalfEllipticCone(radiusX, radiusZ, height, segments, color) {
@@ -504,19 +541,36 @@ export class HeadShape {
         const x = radiusX * Math.cos(longAngle) * Math.cos(latAngle);
         const y = radiusY * Math.sin(latAngle);
         const z = radiusZ * Math.sin(longAngle) * Math.cos(latAngle);
-        const color = y >= 0 ? topColor : bottomColor;
-        vertices.push(x, y, z, ...color);
-      }
+        let color;
+        const y_offset = -0.3 * radiusY; // Titik potong Y dasar (geser ke atas/bawah)
+            const z_influence_factor = -0; // Seberapa besar Z mempengaruhi kelengkungan garis (0.0 = lurus)
+
+            // Hitung nilai Y untuk garis pemisah
+            // z positif (depan) akan membuat garis pemisah lebih tinggi (lebih banyak krem di atas)
+            // z negatif (belakang) akan membuat garis pemisah lebih rendah (lebih banyak biru di bawah)
+            const separation_y = y_offset - (z * z_influence_factor);
+
+            if (y >= separation_y) {
+                // Di atas garis pemisah
+                color = topColor; // Warnai BIRU
+            } else {
+                // Di bawah garis pemisah
+                color = bottomColor; // Warnai KREM
+            }
+            // --- AKHIR LOGIKA GARIS PEMISAH MELENGKUNG ---
+
+            vertices.push(x, y, z, ...color);
+        }
     }
     for (let i = 0; i < lats; i++) {
-      for (let j = 0; j < longs; j++) {
-        const first = i * (longs + 1) + j,
-          second = first + longs + 1;
-        indices.push(first, second, first + 1, second, second + 1, first + 1);
-      }
+        for (let j = 0; j < longs; j++) {
+            const first = i * (longs + 1) + j,
+                second = first + longs + 1;
+            indices.push(first, second, first + 1, second, second + 1, first + 1);
+        }
     }
     return { vertices, indices };
-  }
+}
 
   animate(time) {
     const flickerSpeed = 6.0;  // Kecepatan kedipan: Lebih kecil = lebih lambat
@@ -572,6 +626,45 @@ export class HeadShape {
         // Interpolasi
         const t = crawlAmount * crawlAmount * (3 - 2 * crawlAmount);
         const currentRotationX = this._lerp(this.standRotX, this.crawlRotX, t);
+
+        // --- BARU: Blok Animasi Api ---
+        const standFlickerSpeed = 6.0;
+        const crawlFlickerSpeed = 20.0; 
+        const standFlickerAmount = 0.15; // Ambil dari kode lama Anda
+        const crawlFlickerAmount = 0.24;  // Buat lebih besar
+
+        const currentFlickerSpeed = this._lerp(standFlickerSpeed, crawlFlickerSpeed, crawlAmount);
+        const currentFlickerAmount = this._lerp(standFlickerAmount, crawlFlickerAmount, crawlAmount);
+
+        // Interpolasi Warna
+        const currentOuterColor = this._lerpColor(this.standOuterColor, this.crawlOuterColor, crawlAmount);
+        const currentInnerColor = this._lerpColor(this.standInnerColor, this.crawlInnerColor, crawlAmount);
+
+        this.FLAME_OBJECTS.forEach((obj, i) => {
+            // A. Update Skala (Flicker)
+            const actualFlicker = 0.5 + 0.5 * Math.sin(time * currentFlickerSpeed + i * 0.5); 
+            const animatedScaleY = obj.baseScale[1] * (1.0 + actualFlicker * currentFlickerAmount);
+            const animatedScale = [obj.baseScale[0], animatedScaleY, obj.baseScale[2]];
+
+            obj.localMatrix = this.createTransformMatrixLIBS({
+                translation: obj.baseTranslation,
+                rotation: obj.baseRotation,
+                scale: animatedScale,
+            });
+
+            // B. Update Warna (Buffer)
+            this._tempFlameVertices.length = 0; // Kosongkan array
+            const colorToUse = (obj.colorType === 'outer') ? currentOuterColor : currentInnerColor;
+            
+            for (let v = 0; v < obj.positions.length; v += 3) {
+                this._tempFlameVertices.push(obj.positions[v], obj.positions[v+1], obj.positions[v+2]);
+                this._tempFlameVertices.push(...colorToUse);
+            }
+
+            // Update vertex buffer di GPU
+            this.GL.bindBuffer(this.GL.ARRAY_BUFFER, obj.vertexBuffer);
+            this.GL.bufferSubData(this.GL.ARRAY_BUFFER, 0, new Float32Array(this._tempFlameVertices));
+        });
 
         // Terapkan ke MOVE_MATRIX
         LIBS.set_I4(this.MOVE_MATRIX);
