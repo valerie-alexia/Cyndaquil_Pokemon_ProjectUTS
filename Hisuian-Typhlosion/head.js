@@ -52,12 +52,15 @@ export class HeadShape {
         LIBS.rotateZ(earsMatrix, 0.8);
         LIBS.rotateX(earsMatrix, -1);
         this.addObject(ears.vertices, ears.faces, earsMatrix);
+        this.OBJECTS[this.OBJECTS.length - 1].tag = "leftEar";
+
         const earsMatrix2 = LIBS.get_I4();
         LIBS.translateY(earsMatrix2, 0.5);
         LIBS.translateX(earsMatrix2, 0.8);
         LIBS.rotateZ(earsMatrix2, -0.8);
         LIBS.rotateX(earsMatrix2, -1);
         this.addObject(ears.vertices, ears.faces, earsMatrix2);
+        this.OBJECTS[this.OBJECTS.length - 1].tag = "rightEar";
 
         // ===== EYES =====
         const eyeGeo = this.createTriangle([1.0, 1.0, 0.95], [0, 0.1, 0], [0, -0.1, 0.1], [-0.6, 0, 0]); // Geometri mata sipit
@@ -79,7 +82,7 @@ export class HeadShape {
         LIBS.rotateZ(kelopakMatrix, 0.2);
         this.addObject(kelopak.vertices, kelopak.faces, kelopakMatrix);
         // Pupil
-        const pupil = this.createShape(0.1, 10, [1.84, 0.32, 0.35]);
+        const pupil = this.createShape(0.13, 10, [1.84, 0.32, 0.35]);
         const pupilMatrix = LIBS.get_I4();
         LIBS.scaleX(pupilMatrix, 0.9);
         LIBS.scaleY(pupilMatrix, 0.7);
@@ -135,7 +138,7 @@ export class HeadShape {
         LIBS.rotateZ(rkelopakMatrix, -0.2);
         this.addObject(rkelopak.vertices, rkelopak.faces, rkelopakMatrix);
         // Pupil
-        const rpupil = this.createShape(0.1, 10, [1.84, 0.32, 0.35]);
+        const rpupil = this.createShape(0.13, 10, [1.84, 0.32, 0.35]);
         const rpupilMatrix = LIBS.get_I4();
         LIBS.scaleX(rpupilMatrix, 0.9);
         LIBS.scaleY(rpupilMatrix, 0.7);
@@ -171,7 +174,8 @@ export class HeadShape {
 
 
         // ===== MOUTH =====
-        const mouthColor = [0.85, 0.45, 0.5];// Warna pink/merah muda untuk mulut
+        // const mouthColor = [0.85, 0.45, 0.5];// Warna pink/merah muda untuk mulut
+        const mouthColor = [0, 0, 0];// Warna pink/merah muda untuk mulut
         const mouthRadius = 0.3; // Lebar mulut
         const mouthSegments = 10; // Detail mulut
 
@@ -187,7 +191,7 @@ export class HeadShape {
         LIBS.translateZ(mouthMatrix, 1.55); // Maju ke depan (sedikit di depan ujung Z kepala)
 
         // Putar agar menghadap ke depan dan sedikit miring ke atas
-        LIBS.rotateX(mouthMatrix, Math.PI * 0.4); // Miringkan ke atas
+        LIBS.rotateX(mouthMatrix, Math.PI * 0.2); // Miringkan ke atas
         LIBS.rotateZ(mouthMatrix, Math.PI); // Putar 180 derajat agar bagian datar di atas
 
         // Sedikit skala jika perlu
@@ -195,6 +199,30 @@ export class HeadShape {
 
         // Tambahkan objek mulut
         this.addObject(mouthGeo.vertices, mouthGeo.faces, mouthMatrix);
+
+
+        const noseColor = [0.05, 0.05, 0.05];
+        const noseRadius = 0.01;
+        const noseSegments = 10;
+
+        // Helper to create a nostril circle
+        const createNostril = (offsetX, offsetY, offsetZ, rotationY = 0) => {
+            const nostril = this.createShape(noseRadius, noseSegments, noseColor);
+            const nostrilMatrix = LIBS.get_I4();
+            LIBS.translateX(nostrilMatrix, offsetX);
+            LIBS.translateY(nostrilMatrix, offsetY);
+            LIBS.translateZ(nostrilMatrix, offsetZ);
+            LIBS.rotateX(nostrilMatrix, -0.2);
+            LIBS.rotateY(nostrilMatrix, rotationY);
+            LIBS.scaleX(nostrilMatrix, 1.5);
+            LIBS.scaleY(nostrilMatrix, 0.7);
+            this.addObject(nostril.vertices, nostril.faces, nostrilMatrix);
+        };
+
+        // Left nostril
+        createNostril(-0.15, -0.1, 1.77, 0.25);
+        // Right nostril
+        createNostril(0.15, -0.1, 1.77, -0.25);
 
         // ===== DETAILS =====
         const crescentColor = [0.25, 0.2, 0.3]; // Warna ungu/abu tua untuk marking
@@ -206,7 +234,7 @@ export class HeadShape {
         const crescentEndAngle = Math.PI / 5;   // Selesai agak ke atas
 
         const crescentGeo = this.createCrescent(
-            crescentOuterRadius+0.1,
+            crescentOuterRadius + 0.1,
             crescentThickness,
             crescentStartAngle,
             crescentEndAngle,
@@ -231,7 +259,7 @@ export class HeadShape {
         LIBS.rotateY(crescentMatrixLeft, 0.3);
         LIBS.rotateZ(crescentMatrixLeft, -1.4);
         this.addObject(crescentGeo.vertices, crescentGeo.indices, crescentMatrixLeft);
-        
+
         let crescentMatrixLeft2 = LIBS.get_I4();
         LIBS.translateX(crescentMatrixLeft2, 0.9);
         LIBS.translateY(crescentMatrixLeft2, -0.3);
@@ -578,6 +606,7 @@ export class HeadShape {
 
         return { vertices, faces };
     }
+
 
 
     setup() {

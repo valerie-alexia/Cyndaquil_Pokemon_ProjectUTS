@@ -169,8 +169,10 @@ function main() {
     let jumpProgress = 0; // 0 mulai, 1 selesai 
 
 
-    const breathSpeed = 0.001;
-    const breathScaleAmount = 0.001;
+    const breathSpeed = 0.003;
+    const breathScaleAmount = 0.003;
+    const breathSpeedTr = 0.0015;
+    const breathVerticalShift = 0.05;
 
 
     let isRotatingArb = false;
@@ -261,15 +263,80 @@ function main() {
 
 
         const currentTime = performance.now();
-
+        LIBS.set_I4(body.MOVE_MATRIX);
+        LIBS.set_I4(head.MOVE_MATRIX);
+        LIBS.set_I4(rightArm.MOVE_MATRIX);
+        LIBS.set_I4(leftArm.MOVE_MATRIX);
+        LIBS.set_I4(rightLeg.MOVE_MATRIX);
+        LIBS.set_I4(leftLeg.MOVE_MATRIX);
+        LIBS.set_I4(flameCollar.MOVE_MATRIX);
 
         // Animasi Breathing-Idle 
-        const breathPhase = time * breathSpeed; // Pakai 'time' agar kontinu
+        const breathPhase = time * breathSpeed;
         const breathScaleFactor = 1.0 + Math.sin(breathPhase) * breathScaleAmount;
-        // LIBS.scaleX(body.MOVE_MATRIX,breathScaleFactor);
-        LIBS.scaleY(body.MOVE_MATRIX,breathScaleFactor);
-        LIBS.translateY(head.MOVE_MATRIX, breathScaleFactor);
-        // LIBS.scaleZ(body.MOVE_MATRIX,breathScaleFactor);
+        const breathPhaseTr = time * breathSpeedTr
+        const breathOffsetY = Math.sin(breathPhaseTr) * breathVerticalShift;
+        LIBS.scaleY(body.MOVE_MATRIX, breathScaleFactor);
+        LIBS.translateY(head.MOVE_MATRIX, breathOffsetY);
+        LIBS.translateY(rightArm.MOVE_MATRIX, breathOffsetY);
+        LIBS.translateY(leftArm.MOVE_MATRIX, breathOffsetY);
+        LIBS.translateY(flameCollar.MOVE_MATRIX, breathOffsetY);
+
+        // === Idle Ear Wiggle ===
+        // == ARBITRARY ROTATION ==
+        const earWiggleSpeed = 0.0018;
+        const earWiggleAngle = 0.01;
+
+        head.OBJECTS.forEach(obj => {
+            if (!obj || !obj.localMatrix) return;
+            if (obj.tag === "leftEar" || obj.tag === "rightEar") {
+                const t = Math.sin(time * earWiggleSpeed * (obj.tag === "leftEar" ? 1.0 : 1.1));
+
+                // Ear pivot = where the ear attaches to the head
+                const pivot = obj.tag === "leftEar"
+                    ? [-0.6, 0.4, 0.0]
+                    : [0.6, 0.4, 0.0];
+
+                // Arbitrary diagonal axis
+                const axis = obj.tag === "leftEar"
+                    ? [0.3, 0.9, 0.2]
+                    : [-0.3, 0.9, -0.2];
+
+                const localRotation = LIBS.get_I4();
+                LIBS.translate(localRotation, -pivot[0], -pivot[1], -pivot[2]);
+                LIBS.rotate(localRotation, t * earWiggleAngle, axis);
+                LIBS.translate(localRotation, pivot[0], pivot[1], pivot[2]);
+
+                obj.localMatrix = LIBS.multiply(localRotation, obj.localMatrix);
+            }
+        });
+
+
+        // === Idle Arm Wiggle (Arbitrary Axis) ===
+        const armWiggleSpeed = 0.0012;
+        const armWiggleAngle = 0.08;
+
+        [rightArm, leftArm].forEach(arm => {
+            const t = Math.sin(time * armWiggleSpeed * (arm === leftArm ? 1.0 : 1.25));
+
+            // Shoulder pivot
+            const pivot = arm === leftArm
+                ? [-0.9, 0.5, 0.0]
+                : [0.9, 0.5, 0.0];
+
+            // Diagonal axis]
+            const axis = arm === leftArm
+                ? [0.2, 0.8, 0.1]
+                : [-0.2, 0.8, -0.1];
+
+            const localRotation = LIBS.get_I4();
+            LIBS.translate(localRotation, -pivot[0], -pivot[1], -pivot[2]);
+            LIBS.rotate(localRotation, t * armWiggleAngle, axis);
+            LIBS.translate(localRotation, pivot[0], pivot[1], pivot[2]);
+
+            arm.MOVE_MATRIX = LIBS.multiply(localRotation, arm.MOVE_MATRIX);
+        });
+
 
         // Animasi Lompat
         jumpProgress = 0;
@@ -293,22 +360,22 @@ function main() {
         }
 
         // Terapkan animasi lompat ke TANGAN (jika ada)
-        LIBS.set_I4(rightArm.MOVE_MATRIX); // Reset
-        LIBS.set_I4(leftArm.MOVE_MATRIX);  // Reset
+        // LIBS.set_I4(rightArm.MOVE_MATRIX); // Reset
+        // LIBS.set_I4(leftArm.MOVE_MATRIX);  // Reset
         if (isJumping) {
             LIBS.rotateX(rightArm.MOVE_MATRIX, armSwingAngle);
             LIBS.rotateX(leftArm.MOVE_MATRIX, armSwingAngle);
         }
 
         // Terapkan animasi lompat ke KAKI (jika ada)
-        LIBS.set_I4(rightLeg.MOVE_MATRIX); // Reset
-        LIBS.set_I4(leftLeg.MOVE_MATRIX);  // Reset
+        // LIBS.set_I4(rightLeg.MOVE_MATRIX); // Reset
+        // LIBS.set_I4(leftLeg.MOVE_MATRIX);  // Reset
         if (isJumping) {
             LIBS.rotateX(rightLeg.MOVE_MATRIX, legTuckAngle);
             LIBS.rotateX(leftLeg.MOVE_MATRIX, legTuckAngle);
         }
 
-        LIBS.set_I4(head.MOVE_MATRIX);
+        // LIBS.set_I4(head.MOVE_MATRIX);
 
 
         // Animasi ngangguk
@@ -341,24 +408,24 @@ function main() {
         };
 
         // Animasi Arbitrary Rotation
-        if (isRotatingArb) {
-            const elapsedTime = currentTime - rotateArbStartTime;
-            if (elapsedTime < rotateArbDuration) {
-                let rotate = elapsedTime / rotateArbDuration; // Progress 0 -> 1
-                const t = rotate;
-                const rotateAngle = elapsedTime * rotateArbSpeed * Math.PI * 2;
-                const maxArmSwing = -0.8; 
-                armSwingAngle = Math.sin(t * Math.PI) * maxArmSwing;
+        // if (isRotatingArb) {
+        //     const elapsedTime = currentTime - rotateArbStartTime;
+        //     if (elapsedTime < rotateArbDuration) {
+        //         let rotate = elapsedTime / rotateArbDuration; // Progress 0 -> 1
+        //         const t = rotate;
+        //         const rotateAngle = elapsedTime * rotateArbSpeed * Math.PI * 2;
+        //         const maxArmSwing = -0.8;
+        //         armSwingAngle = Math.sin(t * Math.PI) * maxArmSwing;
 
-                LIBS.translate(rightArm.MOVE_MATRIX, -shoulderPivot[0], -shoulderPivot[1], -shoulderPivot[2]);
-                LIBS.rotateX(rightArm.MOVE_MATRIX, armSwingAngle);
-                LIBS.rotate(rightArm.MOVE_MATRIX, rotateAngle, rotateAxis);
-                LIBS.translate(rightArm.MOVE_MATRIX, shoulderPivot[0], shoulderPivot[1], shoulderPivot[2]);
-            } else { isRotatingArb = false; }
-        }
+        //         LIBS.translate(rightArm.MOVE_MATRIX, -shoulderPivot[0], -shoulderPivot[1], -shoulderPivot[2]);
+        //         LIBS.rotateX(rightArm.MOVE_MATRIX, armSwingAngle);
+        //         LIBS.rotate(rightArm.MOVE_MATRIX, rotateAngle, rotateAxis);
+        //         LIBS.translate(rightArm.MOVE_MATRIX, shoulderPivot[0], shoulderPivot[1], shoulderPivot[2]);
+        //     } else { isRotatingArb = false; }
+        // }
 
         // Animasi Flame
-        LIBS.set_I4(flameCollar.MOVE_MATRIX);
+        // LIBS.set_I4(flameCollar.MOVE_MATRIX);
         const flameSpeed = 0.002; // How fast it animates
         const flameWobble = 0.2;  // How much it moves
         LIBS.rotateY(flameCollar.MOVE_MATRIX, Math.sin(time * flameSpeed) * flameWobble);
