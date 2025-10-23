@@ -1,48 +1,4 @@
-function generateFlame(baseRadius, tipRadius, height, numSegments, numSlices, color) {
-    const vertices = [];
-    const faces = [];
 
-    // Base circle
-    for (let i = 0; i <= numSlices; i++) {
-        const theta = (i / numSlices) * Math.PI * 2;
-        const x = baseRadius * Math.cos(theta);
-        const y = 0;
-        const z = baseRadius * Math.sin(theta);
-        vertices.push(x, y, z, color.r, color.g, color.b);
-    }
-
-    // Body
-    for (let i = 1; i <= numSegments; i++) {
-        const u = i / numSegments;
-        const currentRadius = baseRadius * (1 - u) + tipRadius * u;
-        const currentY = height * u; // Api tumbuh ke ATAS (Y positif)
-
-        for (let j = 0; j <= numSlices; j++) {
-            const theta = (j / numSlices) * Math.PI * 2;
-            let x = currentRadius * Math.cos(theta);
-            let z = currentRadius * Math.sin(theta);
-            const spikeModifier = 0.05 * baseRadius * Math.sin(theta * 3 + u * Math.PI * 2);
-            x += spikeModifier * Math.cos(theta);
-            z += spikeModifier * Math.sin(theta);
-            vertices.push(x, currentY, z, color.r, color.g, color.b);
-        }
-    }
-
-    // --- PERBAIKAN BUG TERBALIK ---
-    for (let i = 0; i < numSegments + 1; i++) {
-        for (let j = 0; j < numSlices; j++) {
-            const first = i * (numSlices + 1) + j;
-            const second = first + 1;
-            const third = (i + 1) * (numSlices + 1) + j;
-            const fourth = third + 1;
-            if (i < numSegments) {
-                faces.push(first, fourth, second); // Urutan dibalik
-                faces.push(first, third, fourth); // Urutan dibalik
-            }
-        }
-    }
-    return { vertices, faces };
-}
 function generateCustomTail(length, baseRadius, tipRadius, numSegments, numSpikes, topColor) { // Hapus bottomColor dari parameter
     const vertices = [];
     const faces = [];
@@ -295,95 +251,6 @@ export class BodyShape {
         // appendGeometry(sphereL.vertices, sphereL.faces, -0.1, yOffset, 0, null, true, 0.1, 0.00);
         appendGeometry(sphereR.vertices, sphereR.faces, 0.1, yOffset, 0, null, true, 0.12, 0.03);
 
-         // ===== ADD TAIL (CUSTOM SHAPE) =====
-        const tailTopColor = { r: 0.25, g: 0.2, b: 0.3 }; // Warna ungu gelap
-
-        const customTailGeo = generateCustomTail(
-            1.5, // Panjang total ekor
-            0.6, // Radius dasar ekor
-            0.1, // Radius ujung ekor
-            10,   // Jumlah segmen utama
-            3,   // Jumlah tonjolan/spikes
-            tailTopColor
-        );
-
-        // Buat matriks transformasi untuk menempatkan dan memutar ekor
-        const tailMatrix = LIBS.get_I4();
-        LIBS.translateY(tailMatrix, -5.5);
-        LIBS.translateZ(tailMatrix, -1.6);
-        // Sedikit menekuk ke bawah
-        LIBS.rotateX(tailMatrix, 0.5);
-        LIBS.rotateZ(tailMatrix, -0.32);
-
-        // Terapkan transformasi ke vertex ekor
-        const transformedFlame = [];
-        for (let i = 0; i < customTailGeo.vertices.length; i += 6) {
-            const originalVertex = [
-                customTailGeo.vertices[i],
-                customTailGeo.vertices[i + 1],
-                customTailGeo.vertices[i + 2],
-                1 // W
-            ];
-            // Kalikan vertex dengan matriks transformasi
-            const transformedPoint = LIBS.multiply_vector(tailMatrix, originalVertex);
-
-            transformedFlame.push(
-                transformedPoint[0], transformedPoint[1], transformedPoint[2],
-                customTailGeo.vertices[i + 3], // r
-                customTailGeo.vertices[i + 4], // g
-                customTailGeo.vertices[i + 5]  // b
-            );
-        }
-        // Gunakan appendGeometry untuk menggabungkan vertex ekor yang sudah ditransformasi
-        appendGeometry(transformedTailVertices, customTailGeo.faces);
-
-        // // 4. TAMBAHKAN API LEHER (DI POSISI ATAS)
-        // const numFlames = 10; 
-        // const neckRadius = 1.0; 
-        // const neckVerticalPosition = -0.4; // <-- POSISI ATAS (DI LEHER)
-        // const flameHeight = 1.0; // <-- DIPERPENDEK AGAR TIDAK SAMPAI PUNGGUNG
-        // const flameBaseRadius = 0.3; 
-        // const flameTipRadius = 0.05; 
-        // const flameColorBase = { r: 0.8, g: 0.1, b: 0.4 }; 
-        // const flameColorTip = { r: 0.9, g: 0.3, b: 0.6 }; 
-
-        // for (let i = 0; i < numFlames; i++) {
-        //     const angle = (i / numFlames) * 2 * Math.PI; 
-        //     const flameX = Math.cos(angle) * neckRadius;
-        //     const flameZ = Math.sin(angle) * neckRadius;
-        //     const flameY = neckVerticalPosition; // y = -0.4
-
-        //     const flameGeo = generateFlame(flameBaseRadius, flameTipRadius, flameHeight, 5, 8, flameColorBase);
-
-        //     const flameMatrix = LIBS.get_I4();
-        //     LIBS.translateY(flameMatrix, flameY);
-        //     LIBS.translateX(flameMatrix, flameX);
-        //     LIBS.translateZ(flameMatrix, flameZ);
-
-        //     LIBS.rotateY(flameMatrix, angle + Math.PI / 2); 
-
-        //     // --- PERBAIKAN ARAH API ---
-        //     // Arahkan ke ATAS dan BELAKANG, BUKAN ke bawah
-        //     LIBS.rotateX(flameMatrix, -Math.PI * 0.4); // <-- Putar ke belakang
-
-        //     var transformedFlameVertices = [];
-        //     for (let j = 0; j < flameGeo.vertices.length; j += 6) {
-        //         const originalVertex = [flameGeo.vertices[j], flameGeo.vertices[j+1], flameGeo.vertices[j+2], 1];
-        //         const transformedPoint = LIBS.multiply_vector(flameMatrix, originalVertex);
-
-        //         let r_final, g_final, b_final;
-        //         const normalizedHeight = flameGeo.vertices[j+1] / flameHeight; 
-        //         r_final = flameColorBase.r * (1 - normalizedHeight) + flameColorTip.r * normalizedHeight;
-        //         g_final = flameColorBase.g * (1 - normalizedHeight) + flameColorTip.g * normalizedHeight;
-        //         b_final = flameColorBase.b * (1 - normalizedHeight) + flameColorTip.b * normalizedHeight;
-
-        //         transformedFlameVertices.push(
-        //             transformedPoint[0], transformedPoint[1], transformedPoint[2],
-        //             r_final, g_final, b_final
-        //         );
-        //     }
-        //     appendGeometry(transformedFlameVertices, flameGeo.faces);
-        // }
 
         // ===== ADD TAIL (CUSTOM SHAPE) =====
         const tailTopColor = { r: 0.25, g: 0.2, b: 0.3 }; // Warna ungu gelap
@@ -393,7 +260,7 @@ export class BodyShape {
             0.6, // Radius dasar ekor
             0.1, // Radius ujung ekor
             10,   // Jumlah segmen utama
-            3,   // Jumlah tonjolan/spikes
+            5,   // Jumlah tonjolan/spikes
             tailTopColor
         );
 

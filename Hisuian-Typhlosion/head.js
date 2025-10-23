@@ -1,3 +1,79 @@
+// --- FUNGSI generateCustomTail DIMODIFIKASI UNTUK API JUGA ---
+function generateCustomTail(
+    length, baseRadius, tipRadius, 
+    numSegments, numSpikes, 
+    colorStart, colorEnd, // Terima dua warna
+    growDirectionY = -1 // -1 untuk ekor (bawah), +1 untuk api (atas)
+) { 
+    const vertices = [];
+    const faces = [];
+    const stack = numSegments * 10; 
+    const step = 50; 
+
+    for (let i = 0; i <= stack; i++) {
+        const u = i / stack; // 0 (pangkal) ke 1 (ujung)
+        let currentRadius = baseRadius - u * (baseRadius - tipRadius);
+        
+        // --- Bentuk Gelombang & Putaran (biarkan seperti setelan ekor) ---
+        const waveFrequency = 4; 
+        const waveMagnitude = 0.2 * baseRadius; 
+        const waveX = waveMagnitude * Math.sin(u * Math.PI * waveFrequency);
+        const waveZ = waveMagnitude * 0.5 * Math.sin(u * Math.PI * waveFrequency + Math.PI / 2); 
+        const rotationAngle = u * Math.PI * 3; 
+        
+        for (let j = 0; j <= step; j++) {
+            const v = (j / step) * 2 * Math.PI;
+            
+            let localX = currentRadius * Math.cos(v + rotationAngle);
+            let localZ = currentRadius * Math.sin(v + rotationAngle) * 0.7; // Pipih
+            
+            let x = localX + waveX;
+            // --- Arah Pertumbuhan (BARU) ---
+            let y = length * u * growDirectionY; // Tumbuh ke atas atau bawah
+            let z = localZ + waveZ;
+
+            // --- Spikes (muncul di sekeliling) ---
+            if (numSpikes > 0) {
+                const spikeDensity = numSpikes; 
+                const normalized_v = v / (2 * Math.PI); 
+                const phase = normalized_v * spikeDensity;
+                // Modifikasi spikeVal agar lebih runcing
+                const spikeVal = Math.pow(Math.max(0, Math.sin(phase * Math.PI * 2)), 2); 
+                
+                const spikeFactor = 0.4 * currentRadius * spikeVal; // Besarkan sedikit spikeFactor
+                
+                // --- Aplikasikan spike ke arah luar dari pusat lokal ---
+                const spikeDirX = Math.cos(v + rotationAngle);
+                const spikeDirZ = Math.sin(v + rotationAngle);
+                x += spikeFactor * spikeDirX;
+                z += spikeFactor * spikeDirZ;
+                y += spikeFactor * 0.3 * growDirectionY; // Sedikit dorong Y juga
+                // HAPUS: if (z > 0) { ... } 
+            }
+
+            // --- Warna Gradasi (BARU) ---
+            let r_final = colorStart.r * (1 - u) + colorEnd.r * u;
+            let g_final = colorStart.g * (1 - u) + colorEnd.g * u;
+            let b_final = colorStart.b * (1 - u) + colorEnd.b * u;
+
+            vertices.push(x, y, z, r_final, g_final, b_final);
+        }
+    }
+
+    // --- Faces (Pastikan urutan sudah benar) ---
+    for (let i = 0; i < stack; i++) {
+        for (let j = 0; j < step; j++) {
+            const first = i * (step + 1) + j;
+            const second = first + 1;
+            const third = first + (step + 1);
+            const fourth = third + 1;
+            // Urutan dibalik agar menghadap keluar
+            faces.push(first, fourth, second);
+            faces.push(first, third, fourth);
+        }
+    }
+    return { vertices, faces };
+}
 export class HeadShape {
     GL = null;
     SHADER_PROGRAM = null;
@@ -168,6 +244,7 @@ export class HeadShape {
         this.addObject(rpupil1.vertices, rpupil1.indices, rpupilMatrix1);
         
 
+        
         // ===== DETAILS =====
         // const eyeGeo = this.createSemicircle(0.4, 20, [1.0, 1.0, 0.95]); // Geometri mata sipit
         // const eyeMatrix = LIBS.get_I4();
