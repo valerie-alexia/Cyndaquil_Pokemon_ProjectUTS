@@ -35,7 +35,7 @@ function generateFlameGeometry(length, baseRadius, tipRadius, numSegments, numSp
     return { vertices, faces };
 }
 
-function generateSphere(a, b, c, stack, step, color) { // Tambahkan parameter color
+function generateSphere(a, b, c, stack, step, color) {
     var vertices = [];
     var faces = [];
 
@@ -47,7 +47,7 @@ function generateSphere(a, b, c, stack, step, color) { // Tambahkan parameter co
             var y = b * Math.sin(u);
             var z = c * Math.sin(v) * Math.cos(u);
             // Gunakan warna yang diberikan
-            vertices.push(x, y, z, color.r, color.g, color.b); // Pakai color.r, .g, .b
+            vertices.push(x, y, z, color.r, color.g, color.b); 
         }
     }
 
@@ -182,12 +182,12 @@ export class FlameCollar {
 
         // API 4
         const flame4Matrix = LIBS.get_I4();
-        // Posisikan API 2 (misalnya sedikit ke kanan belakang)
+        // Posisikan API 2 
         LIBS.translateX(flame4Matrix, 0.7);
         LIBS.translateZ(flame4Matrix, -0.6);
         // LIBS.rotateY(flame2Matrix, -Math.PI * 0.25); // Putar berlawanan
         LIBS.rotateX(flame4Matrix, Math.PI * -0.3);
-        LIBS.rotateY(flame4Matrix, -0.8); // Miringkan sedikit beda
+        LIBS.rotateY(flame4Matrix, -0.8); 
 
         // Transformasi vertex API 2
         const transformedFlame4Vertices = [];
