@@ -1,79 +1,3 @@
-// --- FUNGSI generateCustomTail DIMODIFIKASI UNTUK API JUGA ---
-function generateCustomTail(
-    length, baseRadius, tipRadius, 
-    numSegments, numSpikes, 
-    colorStart, colorEnd, // Terima dua warna
-    growDirectionY = -1 // -1 untuk ekor (bawah), +1 untuk api (atas)
-) { 
-    const vertices = [];
-    const faces = [];
-    const stack = numSegments * 10; 
-    const step = 50; 
-
-    for (let i = 0; i <= stack; i++) {
-        const u = i / stack; // 0 (pangkal) ke 1 (ujung)
-        let currentRadius = baseRadius - u * (baseRadius - tipRadius);
-        
-        // --- Bentuk Gelombang & Putaran (biarkan seperti setelan ekor) ---
-        const waveFrequency = 4; 
-        const waveMagnitude = 0.2 * baseRadius; 
-        const waveX = waveMagnitude * Math.sin(u * Math.PI * waveFrequency);
-        const waveZ = waveMagnitude * 0.5 * Math.sin(u * Math.PI * waveFrequency + Math.PI / 2); 
-        const rotationAngle = u * Math.PI * 3; 
-        
-        for (let j = 0; j <= step; j++) {
-            const v = (j / step) * 2 * Math.PI;
-            
-            let localX = currentRadius * Math.cos(v + rotationAngle);
-            let localZ = currentRadius * Math.sin(v + rotationAngle) * 0.7; // Pipih
-            
-            let x = localX + waveX;
-            // --- Arah Pertumbuhan (BARU) ---
-            let y = length * u * growDirectionY; // Tumbuh ke atas atau bawah
-            let z = localZ + waveZ;
-
-            // --- Spikes (muncul di sekeliling) ---
-            if (numSpikes > 0) {
-                const spikeDensity = numSpikes; 
-                const normalized_v = v / (2 * Math.PI); 
-                const phase = normalized_v * spikeDensity;
-                // Modifikasi spikeVal agar lebih runcing
-                const spikeVal = Math.pow(Math.max(0, Math.sin(phase * Math.PI * 2)), 2); 
-                
-                const spikeFactor = 0.4 * currentRadius * spikeVal; // Besarkan sedikit spikeFactor
-                
-                // --- Aplikasikan spike ke arah luar dari pusat lokal ---
-                const spikeDirX = Math.cos(v + rotationAngle);
-                const spikeDirZ = Math.sin(v + rotationAngle);
-                x += spikeFactor * spikeDirX;
-                z += spikeFactor * spikeDirZ;
-                y += spikeFactor * 0.3 * growDirectionY; // Sedikit dorong Y juga
-                // HAPUS: if (z > 0) { ... } 
-            }
-
-            // --- Warna Gradasi (BARU) ---
-            let r_final = colorStart.r * (1 - u) + colorEnd.r * u;
-            let g_final = colorStart.g * (1 - u) + colorEnd.g * u;
-            let b_final = colorStart.b * (1 - u) + colorEnd.b * u;
-
-            vertices.push(x, y, z, r_final, g_final, b_final);
-        }
-    }
-
-    // --- Faces (Pastikan urutan sudah benar) ---
-    for (let i = 0; i < stack; i++) {
-        for (let j = 0; j < step; j++) {
-            const first = i * (step + 1) + j;
-            const second = first + 1;
-            const third = first + (step + 1);
-            const fourth = third + 1;
-            // Urutan dibalik agar menghadap keluar
-            faces.push(first, fourth, second);
-            faces.push(first, third, fourth);
-        }
-    }
-    return { vertices, faces };
-}
 export class HeadShape {
     GL = null;
     SHADER_PROGRAM = null;
@@ -95,11 +19,13 @@ export class HeadShape {
         this._MMatrix = _MMatrix;
 
         // ===== HEAD =====
-        const head = this.createEllipsoid(1, 0.9, 1, 200, 200,
+        const head = this.createEllipsoid(1.03, 0.9, 1, 200, 200,
             [0.25, 0.2, 0.3],
             [0.9, 0.8, 0.6]
         );
-        this.addObject(head.vertices, head.indices);
+        const headMatrix = LIBS.get_I4();
+        // LIBS.translateY(headMatrix, -0.5);
+        this.addObject(head.vertices, head.indices, headMatrix);
 
         // ===== SNOUT =====
         const snout = this.createEllipticParaboloid(0.8, 0.42, 0.7, 250,
@@ -129,21 +55,17 @@ export class HeadShape {
         LIBS.rotateX(earsMatrix2, -1);
         this.addObject(ears.vertices, ears.indices, earsMatrix2);
 
-
-        // Anda bisa terus menambahkan lebih banyak elemen api dengan posisi, rotasi, dan skala yang berbeda
-        // untuk mencapai bentuk yang diinginkan.
-
         // ===== EYES =====
-        const eyeGeo = this.createTriangle([1.0, 1.0, 0.95], [0, 0.1, 0], [0, -0.1, 0.1], [-0.9, 0, 0]); // Geometri mata sipit
+        const eyeGeo = this.createTriangle([1.0, 1.0, 0.95], [0, 0.1, 0], [0, -0.1, 0.1], [-0.6, 0, 0]); // Geometri mata sipit
         const eyeMatrix = LIBS.get_I4();
         LIBS.translateX(eyeMatrix, 0.8);
-        LIBS.translateZ(eyeMatrix, 0.8);
+        LIBS.translateZ(eyeMatrix, 1);
         LIBS.rotateX(eyeMatrix, 0.2);
-        LIBS.rotateY(eyeMatrix, 1.2);
+        LIBS.rotateY(eyeMatrix, 0.9);
         // Mata Kanan
         this.addObject(eyeGeo.vertices, eyeGeo.indices, eyeMatrix);
         // Kelopak
-        const kelopak = this.createSemicircle(0.45, 10, [0.25, 0.2, 0.3]);
+        const kelopak = this.createSemicircle(0.3, 10, [0.25, 0.2, 0.3]);
         const kelopakMatrix = LIBS.get_I4();
         LIBS.translateY(kelopakMatrix, 0.07);
         LIBS.translateX(kelopakMatrix, 0.68);
@@ -190,16 +112,16 @@ export class HeadShape {
 
 
         // Mata Kanan
-        const reyeGeo = this.createTriangle([1.0, 1.0, 0.95], [0, 0.1, 0], [0, -0.1, 0.1], [-0.9, 0, 0]); // Geometri mata sipit
+        const reyeGeo = this.createTriangle([1.0, 1.0, 0.95], [0, 0.1, 0], [0, -0.1, 0.1], [-0.6, 0, 0]); // Geometri mata sipit
         const reyeMatrix = LIBS.get_I4();
         LIBS.translateX(reyeMatrix, -0.9);
-        LIBS.translateZ(reyeMatrix, 0.8);
+        LIBS.translateZ(reyeMatrix, 1);
         LIBS.rotateX(reyeMatrix, 0.2);
-        LIBS.rotateY(reyeMatrix, 2);
+        LIBS.rotateY(reyeMatrix, 2.3);
         // Mata Kanan
         this.addObject(reyeGeo.vertices, reyeGeo.indices, reyeMatrix);
         // Kelopak
-        const rkelopak = this.createSemicircle(0.45, 10, [0.25, 0.2, 0.3]);
+        const rkelopak = this.createSemicircle(0.3, 10, [0.25, 0.2, 0.3]);
         const rkelopakMatrix = LIBS.get_I4();
         LIBS.translateY(rkelopakMatrix, 0.07);
         LIBS.translateX(rkelopakMatrix, -0.68);
@@ -244,6 +166,31 @@ export class HeadShape {
         this.addObject(rpupil1.vertices, rpupil1.indices, rpupilMatrix1);
         
 
+        // ===== MOUTH =====
+        const mouthColor = [0.85, 0.45, 0.5];// Warna pink/merah muda untuk mulut
+        const mouthRadius = 0.3; // Lebar mulut
+        const mouthSegments = 10; // Detail mulut
+
+        // Buat geometri mulut (setengah lingkaran bawah)
+        const mouthGeo = this.createSemicircle(mouthRadius, mouthSegments, mouthColor);
+
+        // Matriks untuk memposisikan mulut
+        const mouthMatrix = LIBS.get_I4();
+        
+        // Posisikan di depan bawah
+        LIBS.translateY(mouthMatrix, -0.3); // Turunkan sedikit
+        LIBS.translateX(mouthMatrix, 0.0);  // Di tengah X
+        LIBS.translateZ(mouthMatrix, 1.55); // Maju ke depan (sedikit di depan ujung Z kepala)
+
+        // Putar agar menghadap ke depan dan sedikit miring ke atas
+        LIBS.rotateX(mouthMatrix, Math.PI * 0.4); // Miringkan ke atas
+        LIBS.rotateZ(mouthMatrix, Math.PI); // Putar 180 derajat agar bagian datar di atas
+
+        // Sedikit skala jika perlu
+        LIBS.scaleY(mouthMatrix, 0.5); // Buat lebih pipih
+
+        // Tambahkan objek mulut
+        this.addObject(mouthGeo.vertices, mouthGeo.indices, mouthMatrix);
         
         // ===== DETAILS =====
         // const eyeGeo = this.createSemicircle(0.4, 20, [1.0, 1.0, 0.95]); // Geometri mata sipit
@@ -261,8 +208,8 @@ export class HeadShape {
 
         // === Final base transform ===
         LIBS.set_I4(this.POSITION_MATRIX);
-        LIBS.translateY(this.POSITION_MATRIX, 0.5);
-        LIBS.translateZ(this.POSITION_MATRIX, 0.55);
+        LIBS.translateY(this.POSITION_MATRIX, 0.8);
+        LIBS.translateZ(this.POSITION_MATRIX, 0.1);
         LIBS.rotateX(this.POSITION_MATRIX, 0.1);
     }
 
@@ -317,9 +264,8 @@ export class HeadShape {
                 const x = rx * Math.cos(longAngle) * Math.cos(latAngle);
                 const y = ry * Math.sin(latAngle);
                 const z = rz * Math.sin(longAngle) * Math.cos(latAngle);
-                // --- Blok Logika Warna yang Benar ---
                 let c;
-                if (z < 0) {
+                if (z < -0.1) {
                     // Bagian belakang (z negatif) selalu topColor (ungu)
                     c = topColor;
                 } else {
@@ -540,7 +486,7 @@ export class HeadShape {
 
     render(PARENT_MATRIX) {
         // Fix urutan matrix agar sama dengan sistem body.js
-        const MODEL_MATRIX = LIBS.multiply(PARENT_MATRIX, LIBS.multiply(this.POSITION_MATRIX, this.MOVE_MATRIX));
+        const MODEL_MATRIX = LIBS.multiply(LIBS.multiply(this.POSITION_MATRIX, this.MOVE_MATRIX), PARENT_MATRIX);
 
         this.OBJECTS.forEach(obj => {
             let M = MODEL_MATRIX;

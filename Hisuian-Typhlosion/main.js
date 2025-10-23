@@ -152,7 +152,10 @@ function main() {
     CANVAS.addEventListener("mousemove", mouseMove, false);
 
     var SPEED = 0.05;
-
+    var nod = false;
+    var shakeHead = false;
+    let nodStartTime = 0;
+    const nodDuration = 1000;
     var keyDown = function (e) {
         if (e.key === 'w') {
             dY -= SPEED;
@@ -162,9 +165,21 @@ function main() {
         }
         else if (e.key === 's') {
             dY += SPEED;
+            // Animasi Shake Head
         }
         else if (e.key === 'd') {
             dX += SPEED;
+            // Animasi Dab
+        }
+        else if (e.key === 'n') {
+            // Animasi Nod
+            nod = true;
+            nodStartTime = performance.now();
+        }
+        else if (e.key === 'M') {
+            // Animasi Shake head
+            shakeHead = true;
+            nodStartTime = performance.now();
         }
     };
 
@@ -182,15 +197,11 @@ function main() {
         GL.viewport(0, 0, CANVAS.width, CANVAS.height);
         GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
 
-        // LIBS.rotateZ(MOVEMATRIX, dt*0.001);
-        // LIBS.rotateY(MOVEMATRIX, dt*0.001);
-        // LIBS.rotateX(MOVEMATRIX, dt*0.001);
-
         GL.uniformMatrix4fv(_Pmatrix, false, PROJMATRIX);
         GL.uniformMatrix4fv(_Vmatrix, false, VIEWMATRIX);
-        GL.uniformMatrix4fv(_Mmatrix, false, MOVEMATRIX);
 
         LIBS.set_I4(MOVEMATRIX);
+        // Apply accumulated rotation from mouse/keyboard
         LIBS.rotateY(MOVEMATRIX, THETA);
         LIBS.rotateX(MOVEMATRIX, PHI);
 
@@ -201,13 +212,51 @@ function main() {
             PHI += dY;
         }
 
-        // Render body; head is attached as a child of body
-        body.render(MOVEMATRIX);
+        // Animasi ngangguk
+        if (nod) {
+            const elapsedTime = time - nodStartTime;
+            const nodSpeed = 0.002;
+            if (elapsedTime < nodDuration) {
+                const nodPhase = elapsedTime * nodSpeed;
+                LIBS.set_I4(head.MOVE_MATRIX);
+                // Nods rotate up and down
+                LIBS.rotateX(head.MOVE_MATRIX, Math.sin(nodPhase * Math.PI * 2) * 0.2);
+            }
+            else {
+                nod = false; // Stop
+            }
+        };
 
+         // Animasi shake head
+        if (shakeHead) {
+            const elapsedTime = time - nodStartTime;
+            const nodSpeed = 0.002;
+            if (elapsedTime < nodDuration) {
+                const nodPhase = elapsedTime * nodSpeed;
+                LIBS.set_I4(head.MOVE_MATRIX);
+                // Shake head rotate up and down
+                LIBS.rotateY(head.MOVE_MATRIX, Math.sin(nodPhase * Math.PI * 2) * 0.2);
+            }
+            else {
+                shakeHead = false; // Stop
+            }
+        };
+
+        // Animasi Flame
+        LIBS.set_I4(flameCollar.MOVE_MATRIX);
+        const flameSpeed = 0.002; // How fast it animates
+        const flameWobble = 0.2;  // How much it moves
+        LIBS.rotateY(flameCollar.MOVE_MATRIX, Math.sin(time * flameSpeed) * flameWobble);
+        LIBS.rotateX(flameCollar.MOVE_MATRIX, Math.cos(time * flameSpeed * 0.7) * flameWobble * 0.5);
+
+        //  the main body (which will then render its children)
+        body.render(MOVEMATRIX);
 
         GL.flush();
         window.requestAnimationFrame(animate);
-    };
+    }; // End of animate function
+
+    // Start the animation loop
     animate(0);
 }
 window.addEventListener('load', main);
