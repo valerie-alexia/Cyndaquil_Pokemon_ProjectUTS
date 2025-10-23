@@ -284,32 +284,39 @@ function main() {
 
         // === Idle Ear Wiggle ===
         // == ARBITRARY ROTATION ==
-        const earWiggleSpeed = 0.0018;
-        const earWiggleAngle = 0.01;
+        const earWiggleSpeed = 0.0018; 
+        const earWiggleAngle = 0.2; 
 
         head.OBJECTS.forEach(obj => {
-            if (!obj || !obj.localMatrix) return;
-            if (obj.tag === "leftEar" || obj.tag === "rightEar") {
-                const t = Math.sin(time * earWiggleSpeed * (obj.tag === "leftEar" ? 1.0 : 1.1));
+            if (obj && !obj.initialLocalMatrix) {
+                 obj.initialLocalMatrix = LIBS.clone_matrix(obj.localMatrix || LIBS.get_I4());
+            }
 
-                // Ear pivot = where the ear attaches to the head
-                const pivot = obj.tag === "leftEar"
-                    ? [-0.6, 0.4, 0.0]
-                    : [0.6, 0.4, 0.0];
+            if (obj && obj.tag === "leftEar" || obj.tag === "rightEar") {
+                const t = Math.sin(time * earWiggleSpeed * (obj.tag === "leftEar" ? 1.0 : 1.15));
 
-                // Arbitrary diagonal axis
+                // Pivot (relatif terhadap origin local telinga)
+                 const pivot = [0.0, 0.1, 0.0];
+
+                // Sumbu rotasi (arbitrary)
                 const axis = obj.tag === "leftEar"
-                    ? [0.3, 0.9, 0.2]
-                    : [-0.3, 0.9, -0.2];
+                    ? [0.3, 0.9, 0.2]  // Sumbu miring
+                    : [-0.3, 0.9, -0.2]; // Sumbu miring berlawanan
 
-                const localRotation = LIBS.get_I4();
-                LIBS.translate(localRotation, -pivot[0], -pivot[1], -pivot[2]);
-                LIBS.rotate(localRotation, t * earWiggleAngle, axis);
-                LIBS.translate(localRotation, pivot[0], pivot[1], pivot[2]);
+                // 1. Hitung matriks rotasi untuk frame ini
+                const wiggleRotation = LIBS.get_I4();
+                LIBS.translate(wiggleRotation, -pivot[0], -pivot[1], -pivot[2]);
+                LIBS.rotate(wiggleRotation, t * earWiggleAngle, axis);
+                LIBS.translate(wiggleRotation, pivot[0], pivot[1], pivot[2]);
 
-                obj.localMatrix = LIBS.multiply(localRotation, obj.localMatrix);
+                // 2. Gabungkan: Matriks Awal * Goyangan Saat Ini
+                obj.localMatrix = LIBS.multiply(obj.initialLocalMatrix, wiggleRotation);
+
+            } else if (obj && obj.initialLocalMatrix) {
+                 obj.localMatrix = LIBS.clone_matrix(obj.initialLocalMatrix);
             }
         });
+
 
 
         // === Idle Arm Wiggle (Arbitrary Axis) ===

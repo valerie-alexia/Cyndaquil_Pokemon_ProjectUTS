@@ -292,7 +292,7 @@ export class BodyShape {
             0.6, // Radius dasar ekor
             0.1, // Radius ujung ekor
             10,   // Jumlah segmen utama
-            5,   // Jumlah tonjolan/spikes
+            10,   // Jumlah tonjolan/spikes
             tailTopColor
         );
 
