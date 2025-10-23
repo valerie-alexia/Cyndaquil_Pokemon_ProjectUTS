@@ -11,6 +11,9 @@ export class HeadShape {
     POSITION_MATRIX = LIBS.get_I4();
     MOVE_MATRIX = LIBS.get_I4();
 
+    leftEarObject = null;
+    rightEarObject = null;
+
     constructor(GL, SHADER_PROGRAM, _position, _color, _MMatrix) {
         this.GL = GL;
         this.SHADER_PROGRAM = SHADER_PROGRAM;
@@ -379,7 +382,7 @@ export class HeadShape {
                     // Atur tinggi batas di "pipi" (samping, z=0)
                     const boundary_y_at_side = 0.6 * rz;
                     // Atur tinggi batas di "moncong" (depan, z=rz)
-                    const boundary_y_at_front = -0.3 * rz;
+                    const boundary_y_at_front = -0.8 * rz;
 
                     let boundary_y = boundary_y_at_side;
                     if (ry > 0) {

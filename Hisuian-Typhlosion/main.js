@@ -169,12 +169,16 @@ function main() {
     let jumpProgress = 0; // 0 mulai, 1 selesai 
 
 
-    let isScaling = false;       // Status animasi scaling
-    let scaleStartTime = 0;      // Waktu mulai scaling
-    const scaleDuration = 500;   // Durasi transisi scaling (ms)
-    let currentScale = 1.0;      // Skala saat ini (mulai dari 1)
-    let targetScale = 1.0;       // Skala tujuan (1.0 atau scaleFactor)
-    const scaleFactor = 1.02;
+    const breathSpeed = 0.001;
+    const breathScaleAmount = 0.001;
+
+
+    let isRotatingArb = false;
+    let rotateArbStartTime = 0;
+    const rotateArbDuration = 1000;
+    const rotateArbSpeed = 0.002;
+    const rotateAxis = [0, 1, 1];
+    const shoulderPivot = [0.0, 0.7, 0.0];
 
     // Fungsi Easing Sederhana
     function easeInOutQuad(t) {
@@ -219,11 +223,9 @@ function main() {
             jumpStartTime = performance.now();
             // }
         }
-        else if (e.key === 'g' && !isScaling) { // Hanya mulai jika tidak sedang scaling
-            isScaling = true;
-            scaleStartTime = performance.now();
-            // Balikkan target scale
-            targetScale = (currentScale === 1.0) ? scaleFactor : 1.0;
+        else if (e.key === 'e') {
+            isRotatingArb = true;
+            rotateArbStartTime = performance.now();
         }
 
     };
@@ -259,6 +261,15 @@ function main() {
 
 
         const currentTime = performance.now();
+
+
+        // Animasi Breathing-Idle 
+        const breathPhase = time * breathSpeed; // Pakai 'time' agar kontinu
+        const breathScaleFactor = 1.0 + Math.sin(breathPhase) * breathScaleAmount;
+        // LIBS.scaleX(body.MOVE_MATRIX,breathScaleFactor);
+        LIBS.scaleY(body.MOVE_MATRIX,breathScaleFactor);
+        LIBS.translateY(head.MOVE_MATRIX, breathScaleFactor);
+        // LIBS.scaleZ(body.MOVE_MATRIX,breathScaleFactor);
 
         // Animasi Lompat
         jumpProgress = 0;
@@ -315,33 +326,6 @@ function main() {
         };
 
 
-        if (isScaling) {
-            const elapsedScaleTime = currentTime - scaleStartTime;
-            let scaleProgress = Math.min(elapsedScaleTime / scaleDuration, 1.0); // 0 -> 1
-            scaleProgress = easeInOutQuad(scaleProgress); // Terapkan easing
-
-            // Hitung skala saat ini dari skala sebelumnya ke target
-            const startScale = (targetScale === scaleFactor) ? 1.0 : scaleFactor; // Tentukan skala awal
-            currentScale = lerp(startScale, targetScale, scaleProgress);
-
-            // Terapkan scaling ke BODY
-            LIBS.scaleX(body.MOVE_MATRIX, currentScale);
-            LIBS.scaleY(body.MOVE_MATRIX, currentScale);
-            LIBS.scaleZ(body.MOVE_MATRIX, currentScale);
-
-            if (elapsedScaleTime >= scaleDuration) {
-                isScaling = false; // Hentikan animasi scaling
-                currentScale = targetScale; // Pastikan skala akhir tepat
-            }
-        } else {
-            // Jika tidak scaling, pastikan skala tetap di nilai terakhir
-            if (currentScale !== 1.0) { // Hanya terapkan jika tidak normal
-                LIBS.scaleX(body.MOVE_MATRIX, currentScale);
-                LIBS.scaleY(body.MOVE_MATRIX, currentScale);
-                LIBS.scaleZ(body.MOVE_MATRIX, currentScale);
-            }
-        }
-
         // Animasi shake head
         if (shakeHead) {
             const elapsedTime = time - shakeStartTime;
@@ -355,6 +339,23 @@ function main() {
                 shakeHead = false; // Stop
             }
         };
+
+        // Animasi Arbitrary Rotation
+        if (isRotatingArb) {
+            const elapsedTime = currentTime - rotateArbStartTime;
+            if (elapsedTime < rotateArbDuration) {
+                let rotate = elapsedTime / rotateArbDuration; // Progress 0 -> 1
+                const t = rotate;
+                const rotateAngle = elapsedTime * rotateArbSpeed * Math.PI * 2;
+                const maxArmSwing = -0.8; 
+                armSwingAngle = Math.sin(t * Math.PI) * maxArmSwing;
+
+                LIBS.translate(rightArm.MOVE_MATRIX, -shoulderPivot[0], -shoulderPivot[1], -shoulderPivot[2]);
+                LIBS.rotateX(rightArm.MOVE_MATRIX, armSwingAngle);
+                LIBS.rotate(rightArm.MOVE_MATRIX, rotateAngle, rotateAxis);
+                LIBS.translate(rightArm.MOVE_MATRIX, shoulderPivot[0], shoulderPivot[1], shoulderPivot[2]);
+            } else { isRotatingArb = false; }
+        }
 
         // Animasi Flame
         LIBS.set_I4(flameCollar.MOVE_MATRIX);

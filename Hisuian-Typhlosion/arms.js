@@ -158,11 +158,11 @@ export class ArmShape {
     addCone(radius, height, radialSegments, baseCenter, color, dirY = -1) {
         var baseIndex = this.vertices.length / 6;
         
-        // --- BUAT UJUNG TUMPUL ---
+  
         const tipRadiusRatio = 0.3; // Seberapa kecil ujungnya (30% dari radius dasar)
         var tipRadius = radius * tipRadiusRatio; 
         var tipY = baseCenter.y + dirY * height; // Posisi Y ujung
-        // --- AKHIR UJUNG TUMPUL ---
+
 
         // --- Badan Kerucut Tumpul (Frustum) ---
         // Lingkaran Dasar (baseRadius)
@@ -196,7 +196,6 @@ export class ArmShape {
 
         // --- Tutup Ujung Kerucut (Cap) ---
         var tipCenterIndex = this.vertices.length / 6;
-        // Tambahkan vertex tengah untuk tutup ujung
         this.vertices.push(baseCenter.x, tipY, baseCenter.z, color.r, color.g, color.b); 
         
         // Faces Tutup Ujung (Triangle Fan)
@@ -211,8 +210,7 @@ export class ArmShape {
              }
         }
 
-        // --- (Opsional) Tutup Dasar ---
-        // Jika perlu, tambahkan tutup di pangkal dengan logika mirip tutup ujung
+
         // var baseCenterIndex = this.vertices.length / 6;
         // this.vertices.push(baseCenter.x, baseCenter.y, baseCenter.z, color.r, color.g, color.b);
         // var baseRingStart = baseIndex;

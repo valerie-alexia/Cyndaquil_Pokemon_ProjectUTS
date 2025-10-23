@@ -21,7 +21,6 @@ function generateCustomTail(length, baseRadius, tipRadius, numSegments, numSpike
         // Putaran ekor seiring panjangnya
         const rotationAngle = u * Math.PI * 3; // Berapa kali ekor berputar (3 putaran penuh)
 
-        // --- Modifikasi Radius untuk Membuat Bentuk Tidak Seragam ---
         // Membuat ekor terlihat lebih "gemuk" atau "tipis" di titik-titik tertentu
         // Misalnya, lebih tebal di tengah, lebih tipis di pangkal dan ujung
         // const radiusModifier = 0.8 + 0.2 * Math.sin(u * Math.PI * 2); // Gelombang radius
@@ -278,7 +277,7 @@ export class BodyShape {
 
         // Bola penutup
         // var sphereL = generateSphere(1, 1, 1.4, 24, 20);
-        var sphereR = generateSphere(1.3, 1.3, 1.55, 24, 20);
+        var sphereR = generateSphere(1.5, 1.5, 1.55, 24, 20);
         var yOffset = minY - 0.2;
         // -0.6 sama 0.6 sebelumnya
         // appendGeometry(sphereL.vertices, sphereL.faces, -0.1, yOffset, 0, null, true, 0.1, 0.00);
