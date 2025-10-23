@@ -1,5 +1,5 @@
 
-function generateCustomTail(length, baseRadius, tipRadius, numSegments, numSpikes, topColor) { // Hapus bottomColor dari parameter
+function generateCustomTail(length, baseRadius, tipRadius, numSegments, numSpikes, topColor) { 
     const vertices = [];
     const faces = [];
     const stack = numSegments * 10;
@@ -102,7 +102,7 @@ function generateSphere(a, b, c, stack, step) {
         }
     }
 
-    // Generate faces (indices)
+    // Generate faces (faces)
     for (var i = 0; i < stack; i++) {
         for (var j = 0; j < step; j++) {
             var first = i * (step + 1) + j;
@@ -115,6 +115,7 @@ function generateSphere(a, b, c, stack, step) {
     }
     return { vertices, faces };
 }
+// Ganti fungsi generateHyper1d yang lama dengan yang ini
 
 function generateHyper1d(a, b, c, stack, step, uBottomTrimRatio = 0) {
     var vertices = [];
@@ -123,11 +124,28 @@ function generateHyper1d(a, b, c, stack, step, uBottomTrimRatio = 0) {
     var margin = 0.4;
     var uMax = (Math.PI / 2) - margin;
     var uMin = -uMax + (2 * uMax) * Math.max(0, Math.min(0.49, uBottomTrimRatio));
+    // Perkirakan rentang Z maksimum dan minimum (penting untuk normalisasi)
+    // Nilai Z maksimum kira-kira c / cos(uMax)
+    const maxPossibleZ = c / Math.cos(uMax);
+    const minPossibleZ = -maxPossibleZ;
 
     function smoothstep(edge0, edge1, x) {
         var t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
         return t * t * (3 - 2 * t);
     }
+
+    // --- Parameter Kalung ---
+    // Posisi Y tengah kalung
+    const centerNeckY_front = -1.4; // Tengah kalung di depan (z positif)
+    const centerNeckY_back = 0.6;  // Tengah kalung di belakang (z negatif, lebih naik)
+    // Lebar vertikal kalung
+    const neckHeight_front = 0.6;   // Lebar kalung di depan
+    const neckHeight_back = 0.1;    // Lebar kalung di belakang
+
+    // Warna
+    const backColorR = 0.25;
+    const backColorG = 0.2;
+    const backColorB = 0.3;
 
     for (var i = 0; i <= stack / 2; i++) {
         var u = uMin + (uMax - uMin) * (i / stack);
@@ -139,37 +157,52 @@ function generateHyper1d(a, b, c, stack, step, uBottomTrimRatio = 0) {
             var z = c * Math.sin(v) * 1 / Math.cos(u);
 
             var vertical01 = i / (stack / 2);
-            var neckRegion = smoothstep(0.6, 1.0, vertical01);
+            var neckRegion = smoothstep(0.8, 1.0, vertical01);
             var neckScale = 1.0 - 0.35 * (neckRegion * neckRegion);
             x *= neckScale;
             z *= neckScale;
 
             let r, g, bcol;
-            // 1. Tentukan rentang Y untuk kalung ungu
-            const neckBandTop = -0.2; // Batas atas leher
-            const neckBandBottom = -0.6; // Batas bawah leher
 
-            // 2. Cek apakah vertex ini ada di dalam rentang kalung
-            if (y < neckBandTop && y > neckBandBottom) {
-            //     // JIKA IYA: Warnai ungu (warna kalung)
-                r = 0.25; g = 0.2; bcol = 0.3;
+            // --- Logika Pewarnaan Kalung Berdasarkan Z ---
+            // Faktor interpolasi 't': 0 di depan (z maks), 1 di belakang (z min)
+            // Normalisasi z ke rentang [0, 1]
+            let t = (z - maxPossibleZ) / (minPossibleZ - maxPossibleZ);
+            t = Math.max(0, Math.min(1, t)); // Pastikan t tetap di [0, 1]
+
+            // Hitung posisi Y tengah dan lebar kalung saat ini
+            let currentCenterNeckY = centerNeckY_front + t * (centerNeckY_back - centerNeckY_front);
+            let currentNeckHeight = neckHeight_front + t * (neckHeight_back - neckHeight_front);
+
+            // Hitung batas atas dan bawah kalung saat ini
+            let currentNeckBandTop = currentCenterNeckY + currentNeckHeight / 2.0;
+            let currentNeckBandBottom = currentCenterNeckY - currentNeckHeight / 2.0;
+
+            // Warna depan (di luar kalung)
+            const frontColorR = 0.9 + y * 0.005;
+            const frontColorG = 0.8 + y * 0.01;
+            const frontColorB = 0.6 + y * 0.01;
+
+            // Cek apakah vertex berada di rentang kalung
+            if (y < currentNeckBandTop && y > currentNeckBandBottom) {
+                // Daerah Kalung
+                r = backColorR; g = backColorG; bcol = backColorB;
             } else {
-            if (z >= 0) {
-                // Depan (krem)
-                r = 0.9 + y * 0.005;
-                g = 0.8 + y * 0.01;
-                bcol = 0.6 + y * 0.01;
-            } else {
-                // Belakang (ungu)
-                r = 0.25; g = 0.2; bcol = 0.3;
+                // Di Luar Kalung
+                if (z >= -0.2) { // Depan
+                    r = frontColorR; g = frontColorG; bcol = frontColorB;
+                } else { // Belakang
+                    r = backColorR; g = backColorG; bcol = backColorB;
+                }
             }
-            }
+            // --- Akhir Logika Pewarnaan ---
 
             vertices.push(x, y, z);
             vertices.push(r, g, bcol);
         }
     }
 
+    // Pembuatan faces (tidak berubah)
     for (var i = 0; i < stack; i++) {
         for (var j = 0; j < step; j++) {
             var first = i * (step + 1) + j;
@@ -234,7 +267,7 @@ export class BodyShape {
         };
 
         // Body memanjang
-        const generated = generateHyper1d(1, 4, 1, 200, 200, 0.14);
+        const generated = generateHyper1d(1, 4, 1, 300, 300, 0.14);
         this.vertex = generated.vertices;
         this.faces = generated.faces;
 

@@ -90,6 +90,45 @@ var LIBS = {
             m[12] = 0, m[13] = 0, m[14] = 0, m[15] = 1;
     },
 
+    rotate: function (mat, angleInRadians, axis) {
+        let [x, y, z] = axis;
+        let len = Math.hypot(x, y, z);
+
+        if (len === 0) {
+            console.error("Rotation axis cannot be zero vector");
+            return;
+        }
+
+        // Normalize axis
+        if (len !== 1) {
+            const invLen = 1 / len;
+            x *= invLen;
+            y *= invLen;
+            z *= invLen;
+        }
+
+        const s = Math.sin(angleInRadians);
+        const c = Math.cos(angleInRadians);
+        const t = 1 - c;
+
+        // Rodrigues' rotation formula (3x3 part)
+        const a00 = x * x * t + c, a01 = y * x * t + z * s, a02 = z * x * t - y * s;
+        const a10 = x * y * t - z * s, a11 = y * y * t + c, a12 = z * y * t + x * s;
+        const a20 = x * z * t + y * s, a21 = y * z * t - x * s, a22 = z * z * t + c;
+
+        const rotMat = [
+            a00, a01, a02, 0,
+            a10, a11, a12, 0,
+            a20, a21, a22, 0,
+            0, 0, 0, 1
+        ];
+
+        const result = LIBS.multiply(rotMat, mat);
+
+        for (let i = 0; i < 16; i++) {
+            mat[i] = result[i];
+        }
+    },
 
     rotateX: function (m, angle) {
         var c = Math.cos(angle);

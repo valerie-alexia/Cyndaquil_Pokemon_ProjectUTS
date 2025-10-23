@@ -151,7 +151,41 @@ function main() {
     CANVAS.addEventListener("mouseout", mouseUp, false);
     CANVAS.addEventListener("mousemove", mouseMove, false);
 
+    /*================ DEFINE ANIMATION VARIABLES =============== */
     var SPEED = 0.05;
+
+    var nod = false;
+    let nodStartTime = 0;
+    const nodDuration = 1000;
+
+    var shakeHead = false;
+    let shakeStartTime = 0;
+    const shakeDuration = 1000;
+
+    let isJumping = false;
+    let jumpStartTime = 0;
+    const jumpDuration = 800; // Durasi lompat (ms)
+    const jumpHeight = 3.0;   // Ketinggian lompat
+    let jumpProgress = 0; // 0 mulai, 1 selesai 
+
+
+    let isScaling = false;       // Status animasi scaling
+    let scaleStartTime = 0;      // Waktu mulai scaling
+    const scaleDuration = 500;   // Durasi transisi scaling (ms)
+    let currentScale = 1.0;      // Skala saat ini (mulai dari 1)
+    let targetScale = 1.0;       // Skala tujuan (1.0 atau scaleFactor)
+    const scaleFactor = 1.02;
+
+    // Fungsi Easing Sederhana
+    function easeInOutQuad(t) {
+        return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    }
+    // Fungsi Interpolasi Linear (Lerp)
+    function lerp(start, end, t) {
+        return start * (1 - t) + end * t;
+    }
+
+    var isAnyAnimationRunning = () => nod || shakeHead || isJumping;
 
     var keyDown = function (e) {
         if (e.key === 'w') {
@@ -162,10 +196,36 @@ function main() {
         }
         else if (e.key === 's') {
             dY += SPEED;
+            // Animasi Shake Head
         }
         else if (e.key === 'd') {
             dX += SPEED;
+            // Animasi Dab
         }
+        else if (e.key === 'n') {
+            // Animasi Nod
+            nod = true;
+            nodStartTime = performance.now();
+        }
+        else if (e.key === 'm') {
+            // Animasi Shake head
+            shakeHead = true;
+            shakeStartTime = performance.now();
+        }
+        else if (e.key === 'Space' || e.key === ' ') {
+            // if (!isAnyAnimationRunning) {
+            isJumping = true;
+            jumpProgress = 0;
+            jumpStartTime = performance.now();
+            // }
+        }
+        else if (e.key === 'g' && !isScaling) { // Hanya mulai jika tidak sedang scaling
+            isScaling = true;
+            scaleStartTime = performance.now();
+            // Balikkan target scale
+            targetScale = (currentScale === 1.0) ? scaleFactor : 1.0;
+        }
+
     };
 
     window.addEventListener("keydown", keyDown, false);
@@ -182,15 +242,11 @@ function main() {
         GL.viewport(0, 0, CANVAS.width, CANVAS.height);
         GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
 
-        // LIBS.rotateZ(MOVEMATRIX, dt*0.001);
-        // LIBS.rotateY(MOVEMATRIX, dt*0.001);
-        // LIBS.rotateX(MOVEMATRIX, dt*0.001);
-
         GL.uniformMatrix4fv(_Pmatrix, false, PROJMATRIX);
         GL.uniformMatrix4fv(_Vmatrix, false, VIEWMATRIX);
-        GL.uniformMatrix4fv(_Mmatrix, false, MOVEMATRIX);
 
         LIBS.set_I4(MOVEMATRIX);
+        // Apply accumulated rotation from mouse/keyboard
         LIBS.rotateY(MOVEMATRIX, THETA);
         LIBS.rotateX(MOVEMATRIX, PHI);
 
@@ -201,13 +257,120 @@ function main() {
             PHI += dY;
         }
 
-        // Render body; head is attached as a child of body
-        body.render(MOVEMATRIX);
 
+        const currentTime = performance.now();
+
+        // Animasi Lompat
+        jumpProgress = 0;
+        let armSwingAngle = 0;
+        let legTuckAngle = 0;
+        if (isJumping) {
+            const elapsedTime = currentTime - jumpStartTime;
+            if (elapsedTime < jumpDuration) {
+                jumpProgress = elapsedTime / jumpDuration; // Progress 0 -> 1
+                const t = jumpProgress;
+                const jumpOffset = -4 * jumpHeight * t * (t - 1); // Parabola Y offset
+                LIBS.translateY(MOVEMATRIX, jumpOffset); // Terapkan ke gerakan global
+                const maxArmSwing = -0.8; // Ayunan tangan ke atas
+                const maxLegTuck = 0.15;  // Tekukan kaki ke belakang
+                armSwingAngle = Math.sin(t * Math.PI) * maxArmSwing;
+                legTuckAngle = Math.sin(t * Math.PI) * maxLegTuck;
+
+            } else {
+                isJumping = false;
+            }
+        }
+
+        // Terapkan animasi lompat ke TANGAN (jika ada)
+        LIBS.set_I4(rightArm.MOVE_MATRIX); // Reset
+        LIBS.set_I4(leftArm.MOVE_MATRIX);  // Reset
+        if (isJumping) {
+            LIBS.rotateX(rightArm.MOVE_MATRIX, armSwingAngle);
+            LIBS.rotateX(leftArm.MOVE_MATRIX, armSwingAngle);
+        }
+
+        // Terapkan animasi lompat ke KAKI (jika ada)
+        LIBS.set_I4(rightLeg.MOVE_MATRIX); // Reset
+        LIBS.set_I4(leftLeg.MOVE_MATRIX);  // Reset
+        if (isJumping) {
+            LIBS.rotateX(rightLeg.MOVE_MATRIX, legTuckAngle);
+            LIBS.rotateX(leftLeg.MOVE_MATRIX, legTuckAngle);
+        }
+
+        LIBS.set_I4(head.MOVE_MATRIX);
+
+
+        // Animasi ngangguk
+        if (nod) {
+            const elapsedTime = time - nodStartTime;
+            const nodSpeed = 0.002;
+            if (elapsedTime < nodDuration) {
+                const nodPhase = elapsedTime * nodSpeed;
+                // Nods rotate up and down
+                LIBS.rotateX(head.MOVE_MATRIX, Math.sin(nodPhase * Math.PI * 2) * 0.2);
+            }
+            else {
+                nod = false; // Stop
+            }
+        };
+
+
+        if (isScaling) {
+            const elapsedScaleTime = currentTime - scaleStartTime;
+            let scaleProgress = Math.min(elapsedScaleTime / scaleDuration, 1.0); // 0 -> 1
+            scaleProgress = easeInOutQuad(scaleProgress); // Terapkan easing
+
+            // Hitung skala saat ini dari skala sebelumnya ke target
+            const startScale = (targetScale === scaleFactor) ? 1.0 : scaleFactor; // Tentukan skala awal
+            currentScale = lerp(startScale, targetScale, scaleProgress);
+
+            // Terapkan scaling ke BODY
+            LIBS.scaleX(body.MOVE_MATRIX, currentScale);
+            LIBS.scaleY(body.MOVE_MATRIX, currentScale);
+            LIBS.scaleZ(body.MOVE_MATRIX, currentScale);
+
+            if (elapsedScaleTime >= scaleDuration) {
+                isScaling = false; // Hentikan animasi scaling
+                currentScale = targetScale; // Pastikan skala akhir tepat
+            }
+        } else {
+            // Jika tidak scaling, pastikan skala tetap di nilai terakhir
+            if (currentScale !== 1.0) { // Hanya terapkan jika tidak normal
+                LIBS.scaleX(body.MOVE_MATRIX, currentScale);
+                LIBS.scaleY(body.MOVE_MATRIX, currentScale);
+                LIBS.scaleZ(body.MOVE_MATRIX, currentScale);
+            }
+        }
+
+        // Animasi shake head
+        if (shakeHead) {
+            const elapsedTime = time - shakeStartTime;
+            const shakeSpeed = 0.002;
+            if (elapsedTime < shakeDuration) {
+                const shakePhase = elapsedTime * shakeSpeed;
+                // Shake head rotate up and down
+                LIBS.rotateY(head.MOVE_MATRIX, Math.sin(shakePhase * Math.PI * 2) * 0.2);
+            }
+            else {
+                shakeHead = false; // Stop
+            }
+        };
+
+        // Animasi Flame
+        LIBS.set_I4(flameCollar.MOVE_MATRIX);
+        const flameSpeed = 0.002; // How fast it animates
+        const flameWobble = 0.2;  // How much it moves
+        LIBS.rotateY(flameCollar.MOVE_MATRIX, Math.sin(time * flameSpeed) * flameWobble);
+        LIBS.rotateX(flameCollar.MOVE_MATRIX, Math.cos(time * flameSpeed * 0.7) * flameWobble * 0.5);
+
+        //  the main body (which will then render its children)
+        body.render(MOVEMATRIX);
 
         GL.flush();
         window.requestAnimationFrame(animate);
-    };
+    }; // End of animate function
+
+    // Start the animation loop
     animate(0);
 }
 window.addEventListener('load', main);

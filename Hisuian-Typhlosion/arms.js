@@ -39,7 +39,7 @@ export class ArmShape {
         var clawColor = { r: 0.9, g: 0.8, b: 0.6 };
 
         // 1) Shoulder ellipse
-        this.addEllipsoid(0.55, 0.28, 0.55, 24, 32, shoulderCenter, armColor);
+        this.addEllipsoid(0.5, 0.28, 0.55, 24, 32, shoulderCenter, armColor);
 
         // 2) Upper arm (elliptical cylinder, lebih tebal di bahu)
         var upperCenter = { 
@@ -97,7 +97,8 @@ export class ArmShape {
         this.addCone(0.055, 0.18, 24, {x: foreCenter.x + spread*side, y: wristY, z: fingerBaseZ}, clawColor, armDirY); 
 
         LIBS.rotateZ(this.POSITION_MATRIX, 0.7*side);
-        LIBS.translateY(this.POSITION_MATRIX, -0.4);
+        LIBS.translateY(this.POSITION_MATRIX, -0.38);
+        LIBS.translateZ(this.POSITION_MATRIX, 0.08);
     }
 
     // === Geometry helpers ===
