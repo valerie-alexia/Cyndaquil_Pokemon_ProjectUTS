@@ -42,22 +42,40 @@ export class LegsShape {
         var footCenter = {
             x: hipCenter.x,
             y: hipCenter.y + legDirY * (legLen / 2) - 0.7,
-            z: hipCenter.z + 0.1
+            z: hipCenter.z + 0.3
         };
-        this.addEllipsoid(0.45, 0.2, 0.5, 20, 28, footCenter, legColor);
+        this.addEllipsoid(0.45, 0.2, 0.7, 20, 28, footCenter, legColor);
 
-        // 3) Claws
-        var clawBaseY = footCenter.y - 0.1;
-        var spread = 0.25;
-        var clawBaseZ = footCenter.z + 0.3;
-        this.addCone(0.08, 0.20, 12, { x: footCenter.x - spread * side, y: clawBaseY, z: clawBaseZ }, legColor, legDirY);
-        this.addCone(0.09, 0.23, 12, { x: footCenter.x, y: clawBaseY, z: clawBaseZ + 0.05 }, legColor, legDirY);
-        this.addCone(0.08, 0.20, 12, { x: footCenter.x + spread * side, y: clawBaseY, z: clawBaseZ }, legColor, legDirY);
-        // semakin besar semakin atas
+        // 3) Toes (3 Bumps)
+        const toeRadius = { rx: 0.15, ry: 0.15, rz: 0.2 };
+        const toeStacks = 8;
+        const toeSlices = 8;
+        const toeYOffset = legDirY * 0.01; // Sedikit di bawah pusat kaki bawah
+        const toeZOffset = 0.5;         // Maju dari pusat kaki bawah
+        const spread = 0.2;           // Jarak antar jari samping
+
+        // Jari Tengah
+        this.addEllipsoid(toeRadius.rx, toeRadius.ry, toeRadius.rz, toeStacks, toeSlices, {
+            x: footCenter.x,
+            y: footCenter.y + toeYOffset,
+            z: footCenter.z + toeZOffset + 0.1 // Paling depan
+        }, legColor);
+
+        // Jari Samping 1
+        this.addEllipsoid(toeRadius.rx, toeRadius.ry, toeRadius.rz, toeStacks, toeSlices, {
+            x: footCenter.x - spread * side, // Geser ke samping
+            y: footCenter.y + toeYOffset,
+            z: footCenter.z + toeZOffset
+        }, legColor);
+
+        // Jari Samping 2
+        this.addEllipsoid(toeRadius.rx, toeRadius.ry, toeRadius.rz, toeStacks, toeSlices, {
+            x: footCenter.x + spread * side, // Geser ke samping lain
+            y: footCenter.y + toeYOffset,
+            z: footCenter.z + toeZOffset
+        }, legColor);
+
         LIBS.translateY(this.POSITION_MATRIX, -1.3);
-        // --- FIX: Add rotation to the entire leg for better posture ---
-        LIBS.rotateY(this.POSITION_MATRIX, 0.2 * side); // Splay legs outwards
-        LIBS.rotateX(this.POSITION_MATRIX, -0.1);      // Tilt forward
     }
 
     // === Geometry helpers (copied from arms.js for self-containment) ===

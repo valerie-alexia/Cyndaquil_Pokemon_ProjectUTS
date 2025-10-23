@@ -188,17 +188,9 @@ export class ArmShape {
   }
 
   // New: elliptical cylinder
-  addEllipticalCylinder(
-    rxTop,
-    rzTop,
-    rxBottom,
-    rzBottom,
-    height,
-    radialSegments,
-    heightSegments,
-    center,
-    color
-  ) {
+  addEllipticalCylinder(rxTop, rzTop, rxBottom, rzBottom, height, radialSegments,
+    heightSegments, center, color ) 
+    {
     var baseIndex = this.vertices.length / 6;
     for (var yIdx = 0; yIdx <= heightSegments; yIdx++) {
       var t = yIdx / heightSegments;
