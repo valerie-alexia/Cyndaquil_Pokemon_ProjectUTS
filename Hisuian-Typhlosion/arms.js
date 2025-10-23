@@ -37,6 +37,7 @@ export class ArmShape {
         var armColor = { r: 0.9, g: 0.8, b: 0.6 }; 
         // var armColor = { r: 0.9, g: 0.0, b: 0.0 }; 
         var clawColor = { r: 0.9, g: 0.8, b: 0.6 };
+        // var clawColor = { r: 0, g: 0, b: 0 };
 
         // 1) Shoulder ellipse
         this.addEllipsoid(0.5, 0.28, 0.55, 24, 32, shoulderCenter, armColor);
@@ -91,10 +92,11 @@ export class ArmShape {
         var wristY = foreCenter.y + armDirY * (foreLen / 2 + 0.);
         var spread = 0.20;
         var fingerBaseZ = foreCenter.z + 0.02;
+        
 
-        this.addCone(0.06, 0.20, 24, {x: foreCenter.x - spread*side, y: wristY, z: fingerBaseZ}, clawColor, armDirY); 
-        this.addCone(0.065, 0.24, 24, {x: foreCenter.x, y: wristY, z: fingerBaseZ+0.02}, clawColor, armDirY); 
-        this.addCone(0.055, 0.18, 24, {x: foreCenter.x + spread*side, y: wristY, z: fingerBaseZ}, clawColor, armDirY); 
+        this.addCone(0.06, 0.20, 24, {x: foreCenter.x - spread*side, y: wristY, z: fingerBaseZ+0.05}, clawColor, armDirY); 
+        this.addCone(0.065, 0.24, 24, {x: foreCenter.x, y: wristY, z: fingerBaseZ+0.05}, clawColor, armDirY); 
+        this.addCone(0.055, 0.18, 24, {x: foreCenter.x + spread*side, y: wristY, z: fingerBaseZ+0.05}, clawColor, armDirY); 
 
         LIBS.rotateZ(this.POSITION_MATRIX, 0.7*side);
         LIBS.translateY(this.POSITION_MATRIX, -0.38);
@@ -155,25 +157,78 @@ export class ArmShape {
 
     addCone(radius, height, radialSegments, baseCenter, color, dirY = -1) {
         var baseIndex = this.vertices.length / 6;
-        var tipY = baseCenter.y + dirY * height;
+        
+        // --- BUAT UJUNG TUMPUL ---
+        const tipRadiusRatio = 0.3; // Seberapa kecil ujungnya (30% dari radius dasar)
+        var tipRadius = radius * tipRadiusRatio; 
+        var tipY = baseCenter.y + dirY * height; // Posisi Y ujung
+        // --- AKHIR UJUNG TUMPUL ---
 
+        // --- Badan Kerucut Tumpul (Frustum) ---
+        // Lingkaran Dasar (baseRadius)
         for (var i = 0; i <= radialSegments; i++) {
             var theta = (i / radialSegments) * Math.PI * 2;
             var x = Math.cos(theta) * radius + baseCenter.x;
             var z = Math.sin(theta) * radius + baseCenter.z;
             this.vertices.push(x, baseCenter.y, z, color.r, color.g, color.b);
         }
-        this.vertices.push(baseCenter.x, tipY, baseCenter.z, color.r, color.g, color.b);
-        var tipIndex = baseIndex + radialSegments + 1;
-
-        for (var i = 0; i < radialSegments; i++) {
-            var a = baseIndex + i;
-            var b = baseIndex + i + 1;
-            this.faces.push(a, b, tipIndex);
+        // Lingkaran Ujung (tipRadius)
+        for (var i = 0; i <= radialSegments; i++) {
+            var theta = (i / radialSegments) * Math.PI * 2;
+            var x = Math.cos(theta) * tipRadius + baseCenter.x;
+            var z = Math.sin(theta) * tipRadius + baseCenter.z;
+            this.vertices.push(x, tipY, z, color.r, color.g, color.b); // Gunakan tipY
         }
 
-        // semakin besar semakin atas
-        LIBS.translateY(this.POSITION_MATRIX, -0.4);
+        // Faces Samping (Menghubungkan dua lingkaran)
+        var baseRingOffset = baseIndex;
+        var tipRingOffset = baseIndex + (radialSegments + 1);
+        for (var i = 0; i < radialSegments; i++) {
+            var bl = baseRingOffset + i;       // Bottom Left
+            var br = baseRingOffset + i + 1;   // Bottom Right
+            var tl = tipRingOffset + i;        // Top Left
+            var tr = tipRingOffset + i + 1;    // Top Right
+            
+            // Urutan dibalik agar menghadap keluar
+            this.faces.push(bl, tr, br); 
+            this.faces.push(bl, tl, tr); 
+        }
+
+        // --- Tutup Ujung Kerucut (Cap) ---
+        var tipCenterIndex = this.vertices.length / 6;
+        // Tambahkan vertex tengah untuk tutup ujung
+        this.vertices.push(baseCenter.x, tipY, baseCenter.z, color.r, color.g, color.b); 
+        
+        // Faces Tutup Ujung (Triangle Fan)
+        for (var i = 0; i < radialSegments; i++) {
+            var p1 = tipRingOffset + i;
+            var p2 = tipRingOffset + i + 1;
+             // Urutan dibalik agar menghadap keluar (ke arah Y positif lokal jika dirY > 0)
+             if (dirY > 0) {
+                 this.faces.push(tipCenterIndex, p2, p1); 
+             } else { // Normal (jari ke bawah)
+                 this.faces.push(tipCenterIndex, p1, p2); 
+             }
+        }
+
+        // --- (Opsional) Tutup Dasar ---
+        // Jika perlu, tambahkan tutup di pangkal dengan logika mirip tutup ujung
+        // var baseCenterIndex = this.vertices.length / 6;
+        // this.vertices.push(baseCenter.x, baseCenter.y, baseCenter.z, color.r, color.g, color.b);
+        // var baseRingStart = baseIndex;
+        // for (var i = 0; i < radialSegments; i++) {
+        //     var p1 = baseRingStart + i;
+        //     var p2 = baseRingStart + i + 1;
+        //     // Urutan dibalik agar menghadap ke luar (ke arah Y negatif lokal jika dirY < 0)
+        //      if (dirY > 0) {
+        //          this.faces.push(baseCenterIndex, p1, p2); 
+        //      } else { // Normal (jari ke bawah)
+        //          this.faces.push(baseCenterIndex, p2, p1); 
+        //      }
+        // }
+
+        
+        LIBS.translateY(this.POSITION_MATRIX, -0.4); 
     }
 
     setup() {

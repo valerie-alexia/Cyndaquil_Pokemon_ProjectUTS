@@ -40,6 +40,7 @@ export class HeadShape {
         snoutMatrix[10] *= 0.7;
         this.addObject(snout.vertices, snout.faces, snoutMatrix);
 
+
         // ===== EARS =====
         const ears = this.createBluntCone(0.25, 0.1, 0.4, 120, [0.25, 0.2, 0.3]);
         let earsMatrix = LIBS.get_I4();
@@ -164,7 +165,7 @@ export class HeadShape {
         LIBS.rotateY(rpupilMatrix1, -1.2);
         LIBS.rotateZ(rpupilMatrix1, -0.2);
         this.addObject(rpupil1.vertices, rpupil1.faces, rpupilMatrix1);
-        
+
 
         // ===== MOUTH =====
         const mouthColor = [0.85, 0.45, 0.5];// Warna pink/merah muda untuk mulut
@@ -176,7 +177,7 @@ export class HeadShape {
 
         // Matriks untuk memposisikan mulut
         const mouthMatrix = LIBS.get_I4();
-        
+
         // Posisikan di depan bawah
         LIBS.translateY(mouthMatrix, -0.3); // Turunkan sedikit
         LIBS.translateX(mouthMatrix, 0.0);  // Di tengah X
@@ -191,16 +192,70 @@ export class HeadShape {
 
         // Tambahkan objek mulut
         this.addObject(mouthGeo.vertices, mouthGeo.faces, mouthMatrix);
-        
+
         // ===== DETAILS =====
-        // const eyeGeo = this.createSemicircle(0.4, 20, [1.0, 1.0, 0.95]); // Geometri mata sipit
-        // const eyeMatrix = LIBS.get_I4();
-        // LIBS.translateY(eyeMatrix, 0.2);
-        // LIBS.translateX(eyeMatrix, -0.67);
-        // LIBS.translateZ(eyeMatrix, 1);
-        // LIBS.rotateZ(eyeMatrix, 3.2);
-        // LIBS.rotateX(eyeMatrix, 0.3);
-        // LIBS.rotateY(eyeMatrix, 2.1)
+        const crescentColor = [0.25, 0.2, 0.3]; // Warna ungu/abu tua untuk marking
+        const crescentOuterRadius = 0.2;
+        const crescentThickness = 0.2;
+        const crescentSegments = 12;
+        // Tentukan sudut awal dan akhir dalam radian (misal, dari -PI/4 sampai PI/4 untuk busur 90 derajat)
+        const crescentStartAngle = -Math.PI / 2; // Mulai agak ke bawah
+        const crescentEndAngle = Math.PI / 5;   // Selesai agak ke atas
+
+        const crescentGeo = this.createCrescent(
+            crescentOuterRadius+0.1,
+            crescentThickness,
+            crescentStartAngle,
+            crescentEndAngle,
+            crescentSegments,
+            crescentColor
+        );
+        const crescentGeo2 = this.createCrescent(
+            crescentOuterRadius,
+            crescentThickness,
+            crescentStartAngle,
+            crescentEndAngle,
+            crescentSegments,
+            crescentColor
+        );
+
+        // --- Tempatkan Crescent Kiri ---
+        let crescentMatrixLeft = LIBS.get_I4();
+        LIBS.translateX(crescentMatrixLeft, 1.008);
+        LIBS.translateY(crescentMatrixLeft, 0.2);
+        LIBS.translateZ(crescentMatrixLeft, 0);
+        LIBS.rotateX(crescentMatrixLeft, -1.5);
+        LIBS.rotateY(crescentMatrixLeft, 0.3);
+        LIBS.rotateZ(crescentMatrixLeft, -1.4);
+        this.addObject(crescentGeo.vertices, crescentGeo.indices, crescentMatrixLeft);
+        
+        let crescentMatrixLeft2 = LIBS.get_I4();
+        LIBS.translateX(crescentMatrixLeft2, 0.9);
+        LIBS.translateY(crescentMatrixLeft2, -0.3);
+        LIBS.translateZ(crescentMatrixLeft2, -0.1);
+        LIBS.rotateX(crescentMatrixLeft2, -1.8);
+        LIBS.rotateY(crescentMatrixLeft2, 0.3);
+        LIBS.rotateZ(crescentMatrixLeft2, -1.4);
+        this.addObject(crescentGeo2.vertices, crescentGeo2.indices, crescentMatrixLeft2);
+
+        // --- Tempatkan Crescent Kanan ---
+        let crescentMatrixRight = LIBS.get_I4();
+        LIBS.translateX(crescentMatrixRight, -1.09);
+        LIBS.translateY(crescentMatrixRight, 0.2);
+        LIBS.translateZ(crescentMatrixRight, 0);
+        LIBS.rotateX(crescentMatrixRight, -1.5);
+        LIBS.rotateY(crescentMatrixRight, 0.3);
+        LIBS.rotateZ(crescentMatrixRight, -1.4);
+        this.addObject(crescentGeo.vertices, crescentGeo.indices, crescentMatrixRight);
+        let crescentMatrixRight2 = LIBS.get_I4();
+        LIBS.translateX(crescentMatrixRight2, -0.89);
+        LIBS.translateY(crescentMatrixRight2, -0.3);
+        LIBS.translateZ(crescentMatrixRight2, -0.1);
+        LIBS.rotateX(crescentMatrixRight2, -1.5);
+        LIBS.rotateY(crescentMatrixRight2, 0.3);
+        LIBS.rotateZ(crescentMatrixRight2, -1.8);
+        this.addObject(crescentGeo2.vertices, crescentGeo2.indices, crescentMatrixRight2);
+
 
         // ===== DEBUG =====
         // console.log("head+snout:", this.OBJECTS);
@@ -238,6 +293,56 @@ export class HeadShape {
         }
 
         return { vertices, faces };
+    }
+    createCrescent(radius, offset, startAngleRad, endAngleRad, segments, color) {
+        const vertices = [];
+        const indices = [];
+        const angleStep = (endAngleRad - startAngleRad) / segments;
+
+        // Hitung pusat lingkaran dalam (offset di sumbu X)
+        const innerCenterX = offset;
+
+        for (let i = 0; i <= segments; i++) {
+            const currentAngle = startAngleRad + i * angleStep;
+            const cosA = Math.cos(currentAngle);
+            const sinA = Math.sin(currentAngle);
+
+            // Titik di busur LUAR (pusat di 0,0)
+            const outerX = radius * cosA;
+            const outerY = radius * sinA;
+            vertices.push(outerX, outerY, 0, ...color);
+
+            // Titik di busur DALAM (pusat di offset, 0)
+            // Kita perlu cari titik potong antara lingkaran luar dan lingkaran dalam
+            // Untuk simple crescent, kita bisa asumsikan radius dalam mirip luar tapi di-offset
+            // Atau cara lebih mudah: hitung titik di lingkaran dalam pada sudut yg sama
+            const innerX = innerCenterX + radius * cosA; // Offset X ditambahkan
+            const innerY = radius * sinA;
+            // Filter: Hanya ambil titik inner yang BERBEDA dari titik outer
+            // (Ini cara sederhana, bisa lebih akurat dgn kalkulus titik potong)
+            if (Math.sqrt(Math.pow(outerX - innerX, 2) + Math.pow(outerY - innerY, 2)) > offset * 0.8) {
+                vertices.push(innerX, innerY, 0, ...color);
+            } else {
+                // Jika terlalu dekat (di ujung), gunakan titik luar saja agar tidak aneh
+                vertices.push(outerX, outerY, 0, ...color);
+            }
+        }
+
+        // Buat indices (sama seperti versi arc band)
+        for (let i = 0; i < segments; i++) {
+            const outer1 = i * 2;
+            const inner1 = i * 2 + 1;
+            const outer2 = (i + 1) * 2;
+            const inner2 = (i + 1) * 2 + 1;
+
+            // Segitiga 1
+            indices.push(outer1, inner1, outer2);
+            // Segitiga 2
+            indices.push(inner1, inner2, outer2);
+        }
+
+
+        return { vertices, indices };
     }
     createShape(radius, segments, color) {
         const vertices = [0, 0, 0, ...color]; // Center vertex (x,y,z, r,g,b)
