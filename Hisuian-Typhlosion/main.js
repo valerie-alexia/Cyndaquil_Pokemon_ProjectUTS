@@ -2,6 +2,7 @@ import { HeadShape } from "./head.js";
 import { BodyShape } from "./body.js";
 import { ArmShape } from "./arms.js";
 import { LegsShape } from "./legs.js";
+import { FlameCollar } from "./flame.js";
 
 function main() {
     /** @type {HTMLCanvasElement} */
@@ -100,11 +101,14 @@ function main() {
     var rightLeg = new LegsShape(GL, SHADER_PROGRAM, _position, _color, _Mmatrix, -1);
     rightLeg.setup();
 
+    var flameCollar = new FlameCollar(GL, SHADER_PROGRAM, _position, _color, _Mmatrix);
+    flameCollar.setup();
     body.childs.push(head);
     body.childs.push(rightArm);
     body.childs.push(leftArm);
     body.childs.push(leftLeg);
     body.childs.push(rightLeg);
+    body.childs.push(flameCollar);
 
     var PROJMATRIX = LIBS.get_projection(40, CANVAS.width / CANVAS.height, 1, 100);
     var MOVEMATRIX = LIBS.get_I4();
@@ -170,7 +174,7 @@ function main() {
     /*========================= DRAWING ========================= */
     GL.enable(GL.DEPTH_TEST);
     GL.depthFunc(GL.LEQUAL);
-    GL.clearColor(0.0, 0.0, 0.0, 1.0);
+    GL.clearColor(1.0, 1.0, 1.0, 1.0);
     GL.clearDepth(1.0);
 
 

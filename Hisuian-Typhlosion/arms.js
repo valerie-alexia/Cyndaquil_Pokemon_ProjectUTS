@@ -92,11 +92,12 @@ export class ArmShape {
         var spread = 0.20;
         var fingerBaseZ = foreCenter.z + 0.02;
 
-        this.addCone(0.06, 0.30, 24, {x: foreCenter.x - spread*side, y: wristY, z: fingerBaseZ}, clawColor, armDirY); 
-        this.addCone(0.065, 0.34, 24, {x: foreCenter.x, y: wristY, z: fingerBaseZ+0.02}, clawColor, armDirY); 
-        this.addCone(0.055, 0.28, 24, {x: foreCenter.x + spread*side, y: wristY, z: fingerBaseZ}, clawColor, armDirY); 
+        this.addCone(0.06, 0.20, 24, {x: foreCenter.x - spread*side, y: wristY, z: fingerBaseZ}, clawColor, armDirY); 
+        this.addCone(0.065, 0.24, 24, {x: foreCenter.x, y: wristY, z: fingerBaseZ+0.02}, clawColor, armDirY); 
+        this.addCone(0.055, 0.18, 24, {x: foreCenter.x + spread*side, y: wristY, z: fingerBaseZ}, clawColor, armDirY); 
 
         LIBS.rotateZ(this.POSITION_MATRIX, 0.7*side);
+        LIBS.translateY(this.POSITION_MATRIX, -0.4);
     }
 
     // === Geometry helpers ===

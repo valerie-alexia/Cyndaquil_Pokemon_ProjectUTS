@@ -1,5 +1,78 @@
-// body.js
 
+function generateCustomTail(length, baseRadius, tipRadius, numSegments, numSpikes, topColor) { // Hapus bottomColor dari parameter
+    const vertices = [];
+    const faces = [];
+    const stack = numSegments * 10;
+    const step = 50; // Meningkatkan 'step' agar lebih halus di sekeliling
+
+    for (let i = 0; i <= stack; i++) {
+        const u = i / stack; // dari 0 (pangkal) ke 1 (ujung)
+        let currentRadius = baseRadius - u * (baseRadius - tipRadius);
+
+        // --- Modifikasi Bentuk Gelombang dan Putaran ---
+        const waveFrequency = 4; // Berapa kali ekor bergelombang
+        const waveMagnitude = 0.2 * baseRadius; // Seberapa besar gelombangnya
+
+        // Gelombang di sumbu X (kiri-kanan)
+        const waveX = waveMagnitude * Math.sin(u * Math.PI * waveFrequency);
+        // Gelombang di sumbu Z (atas-bawah)
+        const waveZ = waveMagnitude * 0.5 * Math.sin(u * Math.PI * waveFrequency + Math.PI / 2); // Fase berbeda
+
+        // Putaran ekor seiring panjangnya
+        const rotationAngle = u * Math.PI * 3; // Berapa kali ekor berputar (3 putaran penuh)
+
+        // --- Modifikasi Radius untuk Membuat Bentuk Tidak Seragam ---
+        // Membuat ekor terlihat lebih "gemuk" atau "tipis" di titik-titik tertentu
+        // Misalnya, lebih tebal di tengah, lebih tipis di pangkal dan ujung
+        // const radiusModifier = 0.8 + 0.2 * Math.sin(u * Math.PI * 2); // Gelombang radius
+        // currentRadius *= radiusModifier;
+
+
+        for (let j = 0; j <= step; j++) {
+            const v = (j / step) * 2 * Math.PI;
+
+            // Posisi di lingkaran/elips dengan putaran
+            let localX = currentRadius * Math.cos(v + rotationAngle);
+            let localZ = currentRadius * Math.sin(v + rotationAngle) * 0.7; // Agak pipih
+
+            // Terapkan gelombang ke posisi global
+            let x = localX + waveX;
+            let y = -length * u; // Ekor tumbuh ke bawah
+            let z = localZ + waveZ;
+
+            // --- Tonjolan/Spikes (Disesuaikan agar lebih halus) ---
+            if (numSpikes > 0) {
+                const spikeDensity = numSpikes; // Contoh: 3 spike per bagian utama
+                const normalized_v = v / (2 * Math.PI); // 0-1
+                const phase = normalized_v * spikeDensity;
+                const spikeVal = Math.max(0, Math.sin(phase * Math.PI * 2)); // Bentuk gelombang untuk spike
+
+                // Hanya tonjolkan ke arah luar (Z positif) dan sedikit ke Y
+                const spikeFactor = 0.8 * currentRadius * spikeVal;
+                if (z > 0) { // Hanya tonjolkan di sisi "atas/punggung"
+                    z += spikeFactor;
+                    y += spikeFactor * 0.5; // Sedikit naik juga
+                }
+            }
+
+
+            vertices.push(x, y, z, topColor.r, topColor.g, topColor.b);
+        }
+    }
+
+    // Generate faces 
+    for (let i = 0; i < stack; i++) {
+        for (let j = 0; j < step; j++) {
+            const first = i * (step + 1) + j;
+            const second = first + 1;
+            const third = first + (step + 1);
+            const fourth = third + 1;
+            faces.push(first, second, fourth);
+            faces.push(first, fourth, third);
+        }
+    }
+    return { vertices, faces };
+}
 function generateSphere(a, b, c, stack, step) {
     var vertices = [];
     var faces = [];
@@ -14,7 +87,7 @@ function generateSphere(a, b, c, stack, step) {
             var y = b * Math.sin(u);
             var z = c * Math.sin(v) * Math.cos(u);
             let r, g, bcol;
-            if (z >= 0) {
+            if (z >= -1) {
                 r = 0.9 + y * 0.005;
                 g = 0.8 + y * 0.01;
                 bcol = 0.6 + y * 0.01;
@@ -72,13 +145,24 @@ function generateHyper1d(a, b, c, stack, step, uBottomTrimRatio = 0) {
             z *= neckScale;
 
             let r, g, bcol;
+            // 1. Tentukan rentang Y untuk kalung ungu
+            const neckBandTop = -0.2; // Batas atas leher
+            const neckBandBottom = -0.6; // Batas bawah leher
+
+            // 2. Cek apakah vertex ini ada di dalam rentang kalung
+            if (y < neckBandTop && y > neckBandBottom) {
+            //     // JIKA IYA: Warnai ungu (warna kalung)
+                r = 0.25; g = 0.2; bcol = 0.3;
+            } else {
             if (z >= 0) {
+                // Depan (krem)
                 r = 0.9 + y * 0.005;
                 g = 0.8 + y * 0.01;
                 bcol = 0.6 + y * 0.01;
             } else {
-                // Belakang (purple-gray) - UPDATED COLOR
+                // Belakang (ungu)
                 r = 0.25; g = 0.2; bcol = 0.3;
+            }
             }
 
             vertices.push(x, y, z);
@@ -92,58 +176,6 @@ function generateHyper1d(a, b, c, stack, step, uBottomTrimRatio = 0) {
             var second = first + 1;
             var third = first + (step + 1);
             var fourth = third + 1;
-            faces.push(first, second, fourth);
-            faces.push(first, fourth, third);
-        }
-    }
-    return { vertices, faces };
-}
-function generateCustomTail(length, baseRadius, tipRadius, numSegments, numSpikes, topColor, bottomColor) {
-    const vertices = [];
-    const faces = [];
-    const stack = numSegments * 2; // Lebih banyak detail secara vertikal
-    const step = 16; // Cukup detail di sekeliling
-
-    for (let i = 0; i <= stack; i++) {
-        const u = i / stack; // dari 0 ke 1
-        const currentRadius = baseRadius - u * (baseRadius - tipRadius);
-        const y = -length * u; // Ekor tumbuh ke bawah
-        
-        for (let j = 0; j <= step; j++) {
-            const v = (j / step) * 2 * Math.PI;
-            
-            // Bentuk dasar elips/berlian
-            let x = currentRadius * Math.cos(v);
-            let z = currentRadius * Math.sin(v) * 0.7; // Agak pipih
-
-            // Tambahkan tonjolan/spike di sepanjang ekor
-            if (i > stack * 0.2 && i < stack * 0.8 && numSpikes > 0) {
-                const spikeFrequency = Math.floor(stack / numSpikes);
-                if (i % spikeFrequency === 0) {
-                    const spikeFactor = 0.1 * currentRadius; // Ukuran spike
-                    x += spikeFactor * Math.cos(v) * (1 + Math.sin(v * 4)); // Posisi spike
-                    z += spikeFactor * Math.sin(v) * (1 + Math.cos(v * 4));
-                }
-            }
-
-            // Warna berdasarkan posisi Y
-            let r, g, bcol;
-            if (x > 0) { // Sisi atas (atau sisi yang ingin diwarnai ungu)
-                r = topColor.r; g = topColor.g; bcol = topColor.b;
-            } else { // Sisi bawah (krem)
-                r = bottomColor.r; g = bottomColor.g; bcol = bottomColor.b;
-            }
-            vertices.push(x, y, z, r, g, bcol);
-        }
-    }
-
-    // Generate faces (indices)
-    for (let i = 0; i < stack; i++) {
-        for (let j = 0; j < step; j++) {
-            const first = i * (step + 1) + j;
-            const second = first + 1;
-            const third = first + (step + 1);
-            const fourth = third + 1;
             faces.push(first, second, fourth);
             faces.push(first, fourth, third);
         }
@@ -171,10 +203,6 @@ export class BodyShape {
         this._position = _position;
         this._color = _color;
         this._MMatrix = _Mmatrix;
-
-        const generated = generateHyper1d(1, 4, 1, 200, 200, 0.14);
-        this.vertex = generated.vertices;
-        this.faces = generated.faces;
 
         const appendGeometry = (vertices, faces, tx = 0, ty = 0, tz = 0, overrideColor = null, shadeLikeBody = false, zFrontBias = 0, yLightBias = 0) => {
             var baseIndex = this.vertex.length / 6;
@@ -205,70 +233,65 @@ export class BodyShape {
             }
         };
 
+        // Body memanjang
+        const generated = generateHyper1d(1, 4, 1, 200, 200, 0.14);
+        this.vertex = generated.vertices;
+        this.faces = generated.faces;
+
         var minY = Infinity;
         for (var vi = 1; vi < this.vertex.length; vi += 6) {
             if (this.vertex[vi] < minY) minY = this.vertex[vi];
         }
 
-        var sphereL = generateSphere(1, 1, 1.4, 24, 20);
+        // Bola penutup
+        // var sphereL = generateSphere(1, 1, 1.4, 24, 20);
         var sphereR = generateSphere(1.3, 1.3, 1.55, 24, 20);
         var yOffset = minY - 0.2;
         // -0.6 sama 0.6 sebelumnya
         // appendGeometry(sphereL.vertices, sphereL.faces, -0.1, yOffset, 0, null, true, 0.1, 0.00);
         appendGeometry(sphereR.vertices, sphereR.faces, 0.1, yOffset, 0, null, true, 0.12, 0.03);
 
-        // ===== NEW: ADD FLAME COLLAR =====
-        const numFlames = 9;
-        const neckRadius = 1;
-        const neckHeight = -0.4;
-        const flameColor = { r: 0.5, g: 0.2, b: 0.7 };
-        const flameGeometry = generateSphere(0.4, 0.3, 0.4, 12, 12); // elongated sphere for flame
 
-        for (let i = 0; i < numFlames; i++) {
-            const angle = (i / numFlames) * 2 * Math.PI;
-            const x = Math.cos(angle) * neckRadius;
-            // Place flames slightly further back
-            const z = Math.sin(angle) * neckRadius - 0.5;
-            // Stagger height slightly
-            const y = neckHeight + Math.sin(angle * 2) * 0.1;
-            appendGeometry(flameGeometry.vertices, flameGeometry.faces, x, y, z, flameColor);
-        }
-
-        // ===== ADD TAIL (NEW SECTION) =====
         // ===== ADD TAIL (CUSTOM SHAPE) =====
         const tailTopColor = { r: 0.25, g: 0.2, b: 0.3 }; // Warna ungu gelap
-        const tailBottomColor = { r: 0.9, g: 0.8, b: 0.6 }; // Warna krem
 
         const customTailGeo = generateCustomTail(
             1.5, // Panjang total ekor
             0.6, // Radius dasar ekor
             0.1, // Radius ujung ekor
-            5,   // Jumlah segmen utama
-            3,   // Jumlah tonjolan/spikes
-            tailTopColor, tailBottomColor
+            10,   // Jumlah segmen utama
+            5,   // Jumlah tonjolan/spikes
+            tailTopColor
         );
-        
+
         // Buat matriks transformasi untuk menempatkan dan memutar ekor
-        const tailTransform = LIBS.get_I4();
-        LIBS.translate(tailTransform, 0, -3.5, -0.6); // Pindahkan ke bawah dan belakang badan
-        LIBS.rotateX(tailTransform, Math.PI * 0.2); // Sedikit menekuk ke bawah
-        LIBS.rotateY(tailTransform, Math.PI * 0.1); // Sedikit miring ke samping
-        
+        const tailMatrix = LIBS.get_I4();
+        LIBS.translateY(tailMatrix, -5.5);
+        LIBS.translateZ(tailMatrix, -1.6);
+        // Sedikit menekuk ke bawah
+        LIBS.rotateX(tailMatrix, 0.5);
+        LIBS.rotateZ(tailMatrix, -0.32);
+
         // Terapkan transformasi ke vertex ekor
         const transformedTailVertices = [];
         for (let i = 0; i < customTailGeo.vertices.length; i += 6) {
             const originalVertex = [
                 customTailGeo.vertices[i],
-                customTailGeo.vertices[i+1],
-                customTailGeo.vertices[i+2],
+                customTailGeo.vertices[i + 1],
+                customTailGeo.vertices[i + 2],
                 1 // W
             ];
-            const transformedPoint = LIBS.multiply(tailTransform, originalVertex);
+            // Kalikan vertex dengan matriks transformasi
+            const transformedPoint = LIBS.multiply_vector(tailMatrix, originalVertex);
+
             transformedTailVertices.push(
                 transformedPoint[0], transformedPoint[1], transformedPoint[2],
-                customTailGeo.vertices[i+3], customTailGeo.vertices[i+4], customTailGeo.vertices[i+5] // Warna
+                customTailGeo.vertices[i + 3], // r
+                customTailGeo.vertices[i + 4], // g
+                customTailGeo.vertices[i + 5]  // b
             );
         }
+        // Gunakan appendGeometry untuk menggabungkan vertex ekor yang sudah ditransformasi
         appendGeometry(transformedTailVertices, customTailGeo.faces);
 
         this.MOVE_MATRIX = LIBS.get_I4();

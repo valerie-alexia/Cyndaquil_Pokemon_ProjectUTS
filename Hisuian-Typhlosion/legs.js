@@ -32,16 +32,16 @@ export class LegsShape {
         var legLen = 0.8;
         var legDirY = -1;
 
-        // Colors0.98, 0.94, 0.76
-        var legColor = { r: 0.84, g: 0.74, b: 0.56 };
+        // Colors 
+        var legColor = { r: 0.883, g: 0.756, b: 0.566 };
 
         // 1) Upper Leg (Thigh) - A thick ellipsoid
-        this.addEllipsoid(0.8, 1.2, 0.8, 24, 32, hipCenter, legColor);
+        this.addEllipsoid(0.8, 1.5, 0.8, 24, 32, hipCenter, legColor);
 
         // 2) Lower Leg (Foot/Ankle area)
         var footCenter = {
             x: hipCenter.x,
-            y: hipCenter.y + legDirY * (legLen / 2) - 0.7,
+            y: hipCenter.y + legDirY * (legLen / 2) - 1,
             z: hipCenter.z + 0.1
         };
         this.addEllipsoid(0.45, 0.2, 0.5, 20, 28, footCenter, legColor);
@@ -56,7 +56,7 @@ export class LegsShape {
         // semakin besar semakin atas
         LIBS.translateY(this.POSITION_MATRIX, -1.3);
         // --- FIX: Add rotation to the entire leg for better posture ---
-        LIBS.rotateY(this.POSITION_MATRIX, 0.2 * side); // Splay legs outwards
+        LIBS.rotateY(this.POSITION_MATRIX, 0.5 * side); // Splay legs outwards
         LIBS.rotateX(this.POSITION_MATRIX, -0.1);      // Tilt forward
     }
 
