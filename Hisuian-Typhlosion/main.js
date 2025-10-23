@@ -170,7 +170,7 @@ function main() {
     /*========================= DRAWING ========================= */
     GL.enable(GL.DEPTH_TEST);
     GL.depthFunc(GL.LEQUAL);
-    GL.clearColor(0.0, 0.0, 0.0, 1.0);
+    GL.clearColor(1.0, 1.0, 1.0, 1.0);
     GL.clearDepth(1.0);
 
 
