@@ -104,8 +104,8 @@ function main() {
     body.childs.push(head);
     body.childs.push(rightArm);
     body.childs.push(leftArm);
-    body.childs.push(leftLeg);
-    body.childs.push(rightLeg);
+    // body.childs.push(leftLeg);
+    // body.childs.push(rightLeg);
 
     var PROJMATRIX = LIBS.get_projection(40, CANVAS.width / CANVAS.height, 1, 100);
     var MOVEMATRIX = LIBS.get_I4();
@@ -176,8 +176,11 @@ function main() {
 
 
     var animate = function (time) {
-        GL.viewport(0, 0, CANVAS.width, CANVAS.height);
-        GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
+        // Konversi waktu ke detik (best practice)
+        const timeInSeconds = time * 0.001; 
+
+        GL.viewport(0, 0, CANVAS.width, CANVAS.height);
+        GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
 
         // LIBS.rotateZ(MOVEMATRIX, dt*0.001);
         // LIBS.rotateY(MOVEMATRIX, dt*0.001);
@@ -198,8 +201,17 @@ function main() {
             PHI += dY;
         }
 
+        // ==================================================
+        // Panggil animasi api SEBELUM menggambar
+        head.animate(timeInSeconds);
+
+        body.animate(timeInSeconds); // Panggil animasi untuk badan
+
         // Render body; head is attached as a child of body
         body.render(MOVEMATRIX);
+
+        leftLeg.render(MOVEMATRIX);
+        rightLeg.render(MOVEMATRIX);
 
         GL.flush();
         window.requestAnimationFrame(animate);

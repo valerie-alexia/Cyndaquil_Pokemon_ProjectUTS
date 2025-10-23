@@ -5,8 +5,8 @@ export class BodyShape {
     _position = null;
     _color = null;
     _MMatrix = null;
-    // ===== MODIFIKASI: Menggunakan struktur OBJECTS seperti kepala.js =====
     OBJECTS = []; // { vertices, indices, localMatrix, vertexBuffer, indexBuffer }
+    FLAME_OBJECTS = [];
     
     POSITION_MATRIX = LIBS.get_I4();
     MOVE_MATRIX = LIBS.get_I4();
@@ -20,21 +20,17 @@ export class BodyShape {
         this._MMatrix = _MMatrix;
 
         const generated = this.generateHyper1d(1, 4, 1, 200, 200, 0.14);
-        // ===== MODIFIKASI: Tambahkan badan utama sebagai objek pertama =====
         this.addObject(generated.vertices, generated.faces, LIBS.get_I4());
 
             var minY = Infinity;
-        // ===== MODIFIKASI: Baca dari 'generated.vertices' =====
         for (var vi = 1; vi < generated.vertices.length; vi += 6) {
         if (generated.vertices[vi] < minY) minY = generated.vertices[vi];
         }
-        // ======================================================
 
         var sphereL = this.generateSphere(1.4, 1.2, 1.5, 24, 20);
         var sphereR = this.generateSphere(1.4, 1.2, 1.5, 24, 20);
         var yOffset = minY - 0.2;
         
-        // ===== MODIFIKASI: Gunakan addObject dengan matriks transformasi =====
         const sphereLMatrix = this.createTransformMatrixLIBS({
         translation: [-0.1, yOffset, 0],
         rotation: [0, 0, 0],
@@ -49,20 +45,14 @@ export class BodyShape {
         });
         this.addObject(sphereR.vertices, sphereR.faces, sphereRMatrix);
 
-        // ** BARU: Api 2D untuk Punggung (Body Flames) **
-        // (Disalin dari kepala.js)
-        // ===================================================================
+        // Body Flames
         const flameOuterColor = [1.0, 0.6, 0.1]; // Orange
         const flameInnerColor = [1.0, 0.9, 0.2]; // Yellow
-
         const triangleGeoOuter = this.createTriangle(flameOuterColor);
         const triangleGeoInner = this.createTriangle(flameInnerColor);
-
-        // !! PENTING: Rotasi Y dasar badan adalah 0 (tidak seperti kepala yg 1.5)
         const baseRotationY = 0.0;
-        const rotationFlip = Math.PI; // 180 derajat untuk membalik segitiga
+        const rotationFlip = Math.PI; 
 
-        // Data paku api (Disalin PERSIS dari kepala.js, hanya baseRotationY yg diubah)
         const flameSpikes = [
             // Paku 1: tengah panjang
             //x,y,z       rotX,rotY,rotZ           scaleX,scaleY,scaleZ
@@ -84,47 +74,55 @@ export class BodyShape {
         ];
 
         flameSpikes.forEach((spike) => {
-        // Outer flame part (orange)
-        const outerMatrix = this.createTransformMatrixLIBS({
-            translation: [spike.t[0], spike.t[1], spike.t[2] - 0.01], // Geser sedikit ke belakang (untuk layering)
-            rotation: spike.r,
-            scale: spike.s,
-        });
-        this.addObject(
-            triangleGeoOuter.vertices,
-            triangleGeoOuter.indices,
-            outerMatrix
-        );
-        // Inner flame part (yellow right)
-        const innerMatrixRight = this.createTransformMatrixLIBS({
-            translation: [spike.t[0], spike.t[1], spike.t[2] + 0.01], // Geser sedikit ke depan (untuk layering)
-            rotation: spike.r,
-            scale: [spike.s[0] * 0.7, spike.s[1] * 0.7, spike.s[2]], // Skala lebih kecil
-        });
-        this.addObject(
-            triangleGeoInner.vertices,
-            triangleGeoInner.indices,
-            innerMatrixRight
-        );
+            const outerTranslation = [spike.t[0], spike.t[1], spike.t[2] - 0.01];
+            const outerRotation = spike.r;
+            const outerScale = spike.s;
 
-        // Inner flame part (yellow left)
-        const innerMatrixLeft = this.createTransformMatrixLIBS({
-            translation: [spike.t[0] - 0.01, spike.t[1], spike.t[2] + 0.01], // Geser sedikit ke depan (untuk layering)
-            rotation: spike.r,
-            scale: [spike.s[0] * 0.7, spike.s[1] * 0.7, spike.s[2]], // Skala lebih kecil
+            this.FLAME_OBJECTS.push({
+                vertices: triangleGeoOuter.vertices,
+                indices: triangleGeoOuter.indices,
+                localMatrix: this.createTransformMatrixLIBS({
+                    translation: outerTranslation, rotation: outerRotation, scale: outerScale
+                }),
+                baseTranslation: outerTranslation,
+                baseRotation: outerRotation,
+                baseScale: outerScale
+            });
+            // Inner flame part (yellow right)
+            const innerRightTranslation = [spike.t[0], spike.t[1], spike.t[2] + 0.01];
+            const innerRightRotation = spike.r;
+            const innerRightScale = [spike.s[0] * 0.7, spike.s[1] * 0.7, spike.s[2]];
+            this.FLAME_OBJECTS.push({
+                vertices: triangleGeoInner.vertices,
+                indices: triangleGeoInner.indices,
+                localMatrix: this.createTransformMatrixLIBS({
+                    translation: innerRightTranslation, rotation: innerRightRotation, scale: innerRightScale
+                }),
+                baseTranslation: innerRightTranslation,
+                baseRotation: innerRightRotation,
+                baseScale: innerRightScale
+            });
+
+            // Inner flame part (yellow left)
+            const innerLeftTranslation = [spike.t[0] - 0.01, spike.t[1], spike.t[2] + 0.01];
+            const innerLeftRotation = spike.r;
+            const innerLeftScale = [spike.s[0] * 0.7, spike.s[1] * 0.7, spike.s[2]];
+            this.FLAME_OBJECTS.push({
+                vertices: triangleGeoInner.vertices,
+                indices: triangleGeoInner.indices,
+                localMatrix: this.createTransformMatrixLIBS({
+                translation: innerLeftTranslation, rotation: innerLeftRotation, scale: innerLeftScale
+            }),
+            baseTranslation: innerLeftTranslation,
+            baseRotation: innerLeftRotation,
+            baseScale: innerLeftScale
         });
-        this.addObject(
-            triangleGeoInner.vertices,
-            triangleGeoInner.indices,
-            innerMatrixLeft
-        );
-        });
-        // ===================================================================
+    });
 
         this.MOVE_MATRIX = LIBS.get_I4();
+
     }
 
-    // ===== BARU: Fungsi addObject (disalin dari kepala.js) =====
     addObject(vertices, indices, localMatrix = null) {
         if (localMatrix === null) localMatrix = LIBS.get_I4();
         this.OBJECTS.push({ vertices, indices, localMatrix });
@@ -148,21 +146,33 @@ export class BodyShape {
             this.GL.STATIC_DRAW
         );
         });
+        this.FLAME_OBJECTS.forEach((obj) => {
+          obj.vertexBuffer = this.GL.createBuffer();
+          this.GL.bindBuffer(this.GL.ARRAY_BUFFER, obj.vertexBuffer);
+          this.GL.bufferData(
+            this.GL.ARRAY_BUFFER,
+            new Float32Array(obj.vertices),
+            this.GL.STATIC_DRAW
+          );
+          obj.indexBuffer = this.GL.createBuffer();
+          this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, obj.indexBuffer);
+          this.GL.bufferData(
+            this.GL.ELEMENT_ARRAY_BUFFER,
+            new Uint16Array(obj.indices),
+            this.GL.STATIC_DRAW
+          );
+        });
         this.childs.forEach((child) => child.setup());
     }
 
-    
-        // ===== MODIFIKASI: render (disalin dari kepala.js) =====
-    // Ini akan menggambar setiap objek (badan, kaki, api) satu per satu
     render(PARENT_MATRIX) {
         const MODEL_MATRIX = LIBS.multiply(
         PARENT_MATRIX,
         LIBS.multiply(this.POSITION_MATRIX, this.MOVE_MATRIX)
         );
 
-        // Blok aneh dari kepala.js - kita salin saja untuk konsistensi
-        mat4.multiply(MODEL_MATRIX, this.POSITION_MATRIX, this.MOVE_MATRIX);
-        mat4.multiply(MODEL_MATRIX, PARENT_MATRIX, MODEL_MATRIX);
+        // mat4.multiply(MODEL_MATRIX, this.POSITION_MATRIX, this.MOVE_MATRIX);
+        // mat4.multiply(MODEL_MATRIX, PARENT_MATRIX, MODEL_MATRIX);
 
         this.OBJECTS.forEach((obj) => {
         let M = MODEL_MATRIX;
@@ -190,8 +200,61 @@ export class BodyShape {
             0
         );
         });
+
+        this.FLAME_OBJECTS.forEach((obj) => {
+            let M = LIBS.multiply(obj.localMatrix, MODEL_MATRIX);
+
+            this.GL.useProgram(this.SHADER_PROGRAM);
+            this.GL.uniformMatrix4fv(this._MMatrix, false, M);
+
+            this.GL.bindBuffer(this.GL.ARRAY_BUFFER, obj.vertexBuffer);
+            this.GL.vertexAttribPointer(this._position, 3, this.GL.FLOAT, false, 24, 0);
+            this.GL.vertexAttribPointer(this._color, 3, this.GL.FLOAT, false, 24, 12);
+
+            this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, obj.indexBuffer);
+            this.GL.drawElements(
+                this.GL.TRIANGLES,
+                obj.indices.length,
+                this.GL.UNSIGNED_SHORT,
+                0
+            );
+        });
+
         this.childs.forEach((child) => child.render(MODEL_MATRIX));
     }
+
+    animate(time) {
+        const flickerSpeed = 6.0;  // Kecepatan kedipan
+        const flickerAmount = 0.2; // Intensitas kedipan
+
+        this.FLAME_OBJECTS.forEach((obj, i) => {
+        // Nilai 0 sampai 1
+        const actualFlicker = 0.5 + 0.5 * Math.sin(time * flickerSpeed + i * 0.5);
+        const animatedScaleY = obj.baseScale[1] * (1.0 + actualFlicker * flickerAmount); 
+
+        const animatedScale = [obj.baseScale[0], animatedScaleY, obj.baseScale[2]];
+
+        obj.localMatrix = this.createTransformMatrixLIBS({
+            translation: obj.baseTranslation,
+            rotation: obj.baseRotation,
+            scale: animatedScale,  
+        });    
+    });
+    const breathSpeed = 3; // Lebih kecil = napas lebih lambat dan tenang
+    const moveAmount = 0.05; // 0.03 = mengembang/menyusut sebesar 3%
+
+    // Hitung faktor gerakan menggunakan sinus (hasilnya antara -1 dan 1)
+    const breathFactor = Math.sin(time * breathSpeed); 
+
+    // Hitung pergerakan Y (naik/turun)
+    const moveY = breathFactor * moveAmount;
+
+    // Reset matriks gerakan internal badan (PENTING!)
+    LIBS.set_I4(this.MOVE_MATRIX);
+    
+    // Terapkan pergerakan NAIK/TURUN ke matriks gerakan badan
+    LIBS.translateY(this.MOVE_MATRIX, moveY);
+}
 
     createTransformMatrixLIBS({ translation, rotation, scale }) {
         const matrix = LIBS.get_I4();
@@ -224,7 +287,7 @@ export class BodyShape {
                 if (z >= 0) {
                     r = 0.98 + y * 0.002;
                     g = 0.94 + y * 0.002;
-                    bcol = 0.76 + y * 0.002; //const bottomColor = [0.98, 0.94, 0.76]; // cream
+                    bcol = 0.76 + y * 0.002; // cream
                 } else {
                     // Belakang (darkblue-gray)
                     r = 0.22; g = 0.36; bcol = 0.49; 

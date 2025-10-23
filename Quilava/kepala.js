@@ -1,22 +1,13 @@
-/**
- * kepala.js
- * Defines the HeadShape class for the Quilava character, including its geometry and rendering logic.
- */
 export class HeadShape {
   GL = null;
   SHADER_PROGRAM = null;
-
-  // Attribute and Uniform locations
   _position = null;
   _color = null;
   _MMatrix = null;
-
-  // Array untuk menyimpan setiap bagian kepala sebagai objek terpisah
   OBJECTS = []; // { vertices, indices, localMatrix, vertexBuffer, indexBuffer }
-
   POSITION_MATRIX = LIBS.get_I4(); // Posisi kepala relatif thd parent (body)
   MOVE_MATRIX = LIBS.get_I4(); // Rotasi lokal kepala (jika ada)
-  childs = []; // Untuk menampung headFlame
+  childs = []; 
 
   constructor(GL, SHADER_PROGRAM, _position, _color, _MMatrix) {
     this.GL = GL;
@@ -24,36 +15,26 @@ export class HeadShape {
     this._position = _position;
     this._color = _color;
     this._MMatrix = _MMatrix;
+    this.FLAME_OBJECTS = []; // Array baru untuk api kepala
 
-    // ===== Define Colors =====
+    // ===== Colors =====
     const topColor = [0.22, 0.36, 0.49]; // dark blue
     const bottomColor = [0.98, 0.94, 0.76]; // cream
     const scleraColor = [1.0, 1.0, 0.95]; // off-white
     const irisColor = [0.8, 0.1, 0.1]; // red
     const pupilColor = [0.0, 0.0, 0.0]; // black
     const highlightColor = [1.0, 1.0, 1.0]; // white
-
-    // ===================================================================
-    // ** BARU: Warna untuk api 2D **
-    // ===================================================================
     const flameOuterColor = [1.0, 0.6, 0.1]; // Orange
     const flameInnerColor = [1.0, 0.9, 0.2]; // Yellow
 
-    // ===== Create Geometries =====
+    // ===== Geometries =====
     const headGeo = this.createEllipsoid(
-      0.9,
-      0.8,
-      0.8,
-      60,
-      60,
+      0.9, 0.8, 0.8, 60, 60, 
       topColor,
       bottomColor
     );
     const snoutGeo = this.createEllipticParaboloid(
-      0.6,
-      0.4,
-      1.0,
-      20,
+      0.6, 0.4, 1.0, 20,
       topColor,
       bottomColor
     );
@@ -66,7 +47,7 @@ export class HeadShape {
     const highlightGeo = this.createSemicircle(1.0, 20, highlightColor);
     const baseEyeRotationZ = -Math.PI / 2;
 
-    // ===== Create Transformation Matrices for each part =====
+    // ===== Transformation Matrices for each part =====
     // const bodyMatrix = this.createTransformMatrix({ translation: [0, -2, 0.01], rotation: [-Math.PI / 2, 0, 0], scale: [0.7, 0.55, 1.2] });
     const headMatrix = this.createTransformMatrixLIBS({
       translation: [0, 0, 0],
@@ -155,7 +136,6 @@ export class HeadShape {
     this.addObject(irisGeo.vertices, irisGeo.indices, rightIrisMatrix);
     this.addObject(pupilGeo.vertices, pupilGeo.indices, rightPupilMatrix);
     this.addObject(highlightGeo.vertices, highlightGeo.indices, rightHighlightMatrix); 
-    
     // ** MODIFIKASI: API 2D "Mohawk" dari DEPAN ke BELAKANG ** // ===================================================================
     const baseRotationY = 1.5; // Rotasi Y dasar kepala
     const triangleGeoOuter = this.createTriangle(flameOuterColor);
@@ -178,46 +158,69 @@ export class HeadShape {
       // Paku 6: Paling belakang, lebih rendah
       { t: [0.0, 0.8, -0.4], r: [-1.1, baseRotationY, 0.15 + rotationFlip], s: [0.3, 0.8, 1] },
       // Paku 7: Paling belakang dan paling rendah
-      { t: [0.0, 0.6, -0.5], r: [-1.2, baseRotationY, 0.15 + rotationFlip], s: [0.59, 1.3, 1] },
+      { t: [0.0, 0.6, -0.6], r: [-1.2, baseRotationY, 0.15 + rotationFlip], s: [0.59, 1.3, 1] },
       // Paku 8: Paling belakang dan paling rendah
       { t: [0.0, 0.4, -0.6], r: [-1.5, baseRotationY, 0.2 + rotationFlip], s: [0.4, 0.7, 1] }
     ];
 
     flameSpikes.forEach((spike) => {
-      // Outer flame part (orange)
-      const outerMatrix = this.createTransformMatrixLIBS({
-        translation: [spike.t[0], spike.t[1], spike.t[2] - 0.01], // Geser sedikit ke belakang (untuk layering)
-        rotation: spike.r,
-        scale: spike.s,
-      });
-      this.addObject(
-        triangleGeoOuter.vertices,
-        triangleGeoOuter.indices,
-        outerMatrix
-      ); 
-      // Inner flame part (yellow right)
-      const innerMatrixRight = this.createTransformMatrixLIBS({
-        translation: [spike.t[0], spike.t[1], spike.t[2] + 0.01], // Geser sedikit ke depan (untuk layering)
-        rotation: spike.r,
-        scale: [spike.s[0] * 0.7, spike.s[1] * 0.7, spike.s[2]], // Skala lebih kecil
-      });
-      this.addObject(
-        triangleGeoInner.vertices,
-        triangleGeoInner.indices,
-        innerMatrixRight
-      );
+      // --- Outer flame part (orange) ---
+      const outerTranslation = [spike.t[0], spike.t[1], spike.t[2] - 0.01];
+      const outerScale = spike.s;
+      const outerRotation = spike.r;
 
-      // Inner flame part (yellow left)
-      const innerMatrixLeft = this.createTransformMatrixLIBS({
-        translation: [spike.t[0] - 0.01, spike.t[1], spike.t[2] + 0.01], // Geser sedikit ke depan (untuk layering)
-        rotation: spike.r,
-        scale: [spike.s[0] * 0.7, spike.s[1] * 0.7, spike.s[2]], // Skala lebih kecil
+      this.FLAME_OBJECTS.push({
+        vertices: triangleGeoOuter.vertices,
+        indices: triangleGeoOuter.indices,
+        localMatrix: this.createTransformMatrixLIBS({
+          translation: outerTranslation,
+          rotation: outerRotation,
+          scale: outerScale,
+        }),
+        baseTranslation: outerTranslation, // <-- TAMBAHAN BARU
+        baseRotation: outerRotation,   // <-- TAMBAHAN BARU
+        baseScale: outerScale,
       });
-      this.addObject(
-        triangleGeoInner.vertices,
-        triangleGeoInner.indices,
-        innerMatrixLeft
-      );
+
+      // --- Inner flame part (yellow right) ---
+      const innerRightTranslation = [spike.t[0], spike.t[1], spike.t[2] + 0.01];
+      const innerRightScale = [spike.s[0] * 0.7, spike.s[1] * 0.7, spike.s[2]];
+      const innerRightRotation = spike.r;
+
+      this.FLAME_OBJECTS.push({
+        vertices: triangleGeoInner.vertices,
+        indices: triangleGeoInner.indices,
+        localMatrix: this.createTransformMatrixLIBS({
+          translation: innerRightTranslation,
+          rotation: innerRightRotation,
+          scale: innerRightScale,
+        }),
+        baseTranslation: innerRightTranslation, // <-- TAMBAHAN BARU
+        baseRotation: innerRightRotation,   // <-- TAMBAHAN BARU
+        baseScale: innerRightScale,
+      });
+
+      // --- Inner flame part (yellow left) ---
+      const innerLeftTranslation = [
+        spike.t[0] - 0.01,
+        spike.t[1],
+        spike.t[2] + 0.01,
+      ];
+      const innerLeftScale = [spike.s[0] * 0.7, spike.s[1] * 0.7, spike.s[2]];
+      const innerLeftRotation = spike.r;
+
+      this.FLAME_OBJECTS.push({
+        vertices: triangleGeoInner.vertices,
+        indices: triangleGeoInner.indices,
+        localMatrix: this.createTransformMatrixLIBS({
+          translation: innerLeftTranslation,
+          rotation: innerLeftRotation,
+          scale: innerLeftScale,
+        }),
+        baseTranslation: innerLeftTranslation, // <-- TAMBAHAN BARU
+        baseRotation: innerLeftRotation,   // <-- TAMBAHAN BARU
+        baseScale: innerLeftScale,
+      });
     });
 
     LIBS.translateY(this.POSITION_MATRIX, 1);
@@ -248,6 +251,23 @@ export class HeadShape {
       this.GL.bufferData(
         this.GL.ELEMENT_ARRAY_BUFFER,
         new Uint16Array(obj.indices),
+        this.GL.STATIC_DRAW
+      );
+    });
+    this.FLAME_OBJECTS.forEach((child) => {
+      child.vertexBuffer = this.GL.createBuffer();
+      this.GL.bindBuffer(this.GL.ARRAY_BUFFER, child.vertexBuffer);
+      this.GL.bufferData(
+        this.GL.ARRAY_BUFFER,
+        new Float32Array(child.vertices),
+        this.GL.STATIC_DRAW
+      );
+
+      child.indexBuffer = this.GL.createBuffer();
+      this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, child.indexBuffer);
+      this.GL.bufferData(
+        this.GL.ELEMENT_ARRAY_BUFFER,
+        new Uint16Array(child.indices),
         this.GL.STATIC_DRAW
       );
     });
@@ -290,6 +310,33 @@ export class HeadShape {
         0
       );
     });
+
+    this.FLAME_OBJECTS.forEach((obj) => {
+      let M = LIBS.multiply(obj.localMatrix, MODEL_MATRIX); // Gunakan localMatrix api
+
+      this.GL.useProgram(this.SHADER_PROGRAM);
+      this.GL.uniformMatrix4fv(this._MMatrix, false, M);
+
+      // ... (kode bindBuffer dan drawElements, sama seperti this.OBJECTS) ...
+      this.GL.bindBuffer(this.GL.ARRAY_BUFFER, obj.vertexBuffer);
+      this.GL.vertexAttribPointer(
+        this._position,
+        3,
+        this.GL.FLOAT,
+        false,
+        24,
+        0
+      );
+      this.GL.vertexAttribPointer(this._color, 3, this.GL.FLOAT, false, 24, 12);
+      this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, obj.indexBuffer);
+      this.GL.drawElements(
+        this.GL.TRIANGLES,
+        obj.indices.length,
+        this.GL.UNSIGNED_SHORT,
+        0
+      );
+    });
+
     this.childs.forEach((child) => child.render(MODEL_MATRIX));
   }
 
@@ -308,9 +355,6 @@ export class HeadShape {
     LIBS.translateZ(matrix, translation[2]);
     return matrix;
   }
-
-  // NOTE: The following functions are your original ones, modified to create
-  // a single interleaved "vertices" array with (X, Y, Z, R, G, B) data.
 
   createHyperboloidOneSheet(
     a,
@@ -348,7 +392,7 @@ export class HeadShape {
     const v = [
       -1.0, 1.0, 0.0,
       ...color,
-      1.0, 1.0, 0.0,
+      1.0, 1.0, 0.0, 
       ...color,
       0.0, -1.0, 0.0,
       ...color,
@@ -445,4 +489,25 @@ export class HeadShape {
     }
     return { vertices, indices };
   }
+
+  animate(time) {
+    const flickerSpeed = 6.0;  // Kecepatan kedipan: Lebih kecil = lebih lambat
+    const flickerAmount = 0.15; // seberapa besar kedipannya
+
+    this.FLAME_OBJECTS.forEach((obj, i) => {
+    // Pastikan flicker selalu positif atau nol untuk menghindari skala negatif
+    // Atau bisa juga biar di tengah-tengah 1.0, jadi 1.0 +/- flicker
+    const actualFlicker = 0.5 + 0.5 * Math.sin(time * flickerSpeed + i * 0.5); // Nilai 0 sampai 1
+    const animatedScaleY = obj.baseScale[1] * (1.0 + actualFlicker * flickerAmount); 
+
+    // Buat array skala baru
+    const animatedScale = [obj.baseScale[0], animatedScaleY, obj.baseScale[2]];
+
+    obj.localMatrix = this.createTransformMatrixLIBS({
+      translation: obj.baseTranslation,
+      rotation: obj.baseRotation,
+      scale: animatedScale,
+    });
+  });
+}
 }
