@@ -1,5 +1,5 @@
 
-function generateCustomTail(length, baseRadius, tipRadius, numSegments, numSpikes, topColor) { // Hapus bottomColor dari parameter
+function generateCustomTail(length, baseRadius, tipRadius, numSegments, numSpikes, topColor) { 
     const vertices = [];
     const faces = [];
     const stack = numSegments * 10;

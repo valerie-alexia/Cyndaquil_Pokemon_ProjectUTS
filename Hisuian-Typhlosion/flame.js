@@ -1,7 +1,41 @@
-// flame_collar.js
+function generateSphere(a, b, c, stack, step) {
+    var vertices = [];
+    var faces = [];
 
-// --- FUNGSI generateCustomTail DIMODIFIKASI UNTUK API ---
-// Kita letakkan di sini agar class FlameCollarShape bisa menggunakannya
+    // Generate vertices and colors
+    for (var i = 0; i <= stack; i++) {
+        var u = i / stack * Math.PI - (Math.PI / 2); // Latitude
+        for (var j = 0; j <= step; j++) {
+            var v = j / step * 2 * Math.PI - Math.PI; // Longitude
+
+            var x = a * Math.cos(v) * Math.cos(u);
+            var y = b * Math.sin(u);
+            var z = c * Math.sin(v) * Math.cos(u);
+            let r, g, bcol;
+            // { r: 0.8, g: 0.1, b: 0.4 }
+            r = 0.8;
+            g = 0.1;
+            bcol = 0.4;
+            // Push vertex position
+            vertices.push(x, y, z);
+            // Push color
+            vertices.push(r, g, bcol);
+        }
+    }
+
+    // Generate faces (indices)
+    for (var i = 0; i < stack; i++) {
+        for (var j = 0; j < step; j++) {
+            var first = i * (step + 1) + j;
+            var second = first + 1;
+            var third = first + (step + 1);
+            var fourth = third + 1;
+            faces.push(first, second, fourth);
+            faces.push(first, fourth, third);
+        }
+    }
+    return { vertices, faces };
+}
 function generateFlameGeometry(
     length, baseRadius, tipRadius,
     numSegments, numSpikes,
@@ -100,6 +134,18 @@ export class FlameCollar {
         this._color = _color;
         this._MMatrix = _Mmatrix;
 
+
+        // --- Fungsi Helper untuk Menggabungkan Geometri (mirip appendGeometry) ---
+        const mergeGeometry = (newVertices, newFaces) => {
+            const baseIndex = this.vertices.length / 6; // Hitung indeks awal
+            // Tambahkan vertex baru
+            this.vertices.push(...newVertices); 
+            // Tambahkan face baru dengan indeks yang disesuaikan
+            for (let i = 0; i < newFaces.length; i++) {
+                this.faces.push(newFaces[i] + baseIndex);
+            }
+        };
+
         // --- Parameter Api Leher ---
         const flameColorBase = { r: 0.8, g: 0.1, b: 0.4 }; // Merah-magenta di pangkal
         const flameColorTip  = { r: 0.95, g: 0.4, b: 0.7 };// Pink terang di ujung
@@ -111,16 +157,15 @@ export class FlameCollar {
 
         // --- Buat Geometri Api ---
         const flameGeo = generateFlameGeometry(
-            flameLength,
-            flameNeckRadius,
-            flameNeckTipRadius,
-            flameSegments,
-            flameNumSpikes,
-            flameColorBase,
+            flameLength, flameNeckRadius,
+            flameNeckTipRadius, flameSegments,
+            flameNumSpikes, flameColorBase,
             flameColorTip
         );
         this.vertices = flameGeo.vertices;
         this.faces = flameGeo.faces;
+
+
 
         // LIBS.translateY(this.POSITION_MATRIX, 4); // Sesuaikan Y leher
         LIBS.translateZ(this.POSITION_MATRIX, -1); // Sedikit ke belakang
@@ -137,8 +182,6 @@ export class FlameCollar {
         this.OBJECT_FACES = this.GL.createBuffer();
         this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, this.OBJECT_FACES);
         this.GL.bufferData(this.GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.faces), this.GL.STATIC_DRAW);
-
-        // Tidak perlu setup childs
     }
 
     render(PARENT_MATRIX) {
