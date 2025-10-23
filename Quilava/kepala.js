@@ -155,6 +155,7 @@ export class HeadShape {
     this.addObject(irisGeo.vertices, irisGeo.indices, rightIrisMatrix);
     this.addObject(pupilGeo.vertices, pupilGeo.indices, rightPupilMatrix);
     this.addObject(highlightGeo.vertices, highlightGeo.indices, rightHighlightMatrix); 
+    
     // ** MODIFIKASI: API 2D "Mohawk" dari DEPAN ke BELAKANG ** // ===================================================================
     const baseRotationY = 1.5; // Rotasi Y dasar kepala
     const triangleGeoOuter = this.createTriangle(flameOuterColor);
@@ -345,17 +346,11 @@ export class HeadShape {
 
   createTriangle(color) {
     const v = [
-      -1.0,
-      1.0,
-      0.0,
+      -1.0, 1.0, 0.0,
       ...color,
-      1.0,
-      1.0,
-      0.0,
+      1.0, 1.0, 0.0,
       ...color,
-      0.0,
-      -1.0,
-      0.0,
+      0.0, -1.0, 0.0,
       ...color,
     ];
     return { vertices: v, indices: [0, 1, 2] };
