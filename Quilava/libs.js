@@ -29,18 +29,6 @@ var LIBS = {
             0, 0, 0, 1
         ];
     },
-    multiply: function (m1, m2) {
-        var rm = this.get_I4();
-        var N = 4;
-        for (var i = 0; i < N; i++) {
-            for (var j = 0; j < N; j++) {
-                rm[i * N + j] = 0;
-                for (var k = 0; k < N; k++)
-                    rm[i * N + j] += m1[i * N + k] * m2[k * N + j];
-            }
-        }
-        return rm;
-    },
 
     multiply_vector: function (mat, vec) {
         var result = [0, 0, 0, 0];

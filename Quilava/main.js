@@ -95,6 +95,7 @@ function main() {
     var leftArm = new ArmShape(GL, SHADER_PROGRAM, _position, _color, _Mmatrix, -1);
     leftArm.setup();
 
+    // LEGS (left and right)
     var leftLeg = new LegsShape(GL, SHADER_PROGRAM, _position, _color, _Mmatrix, +1);
     leftLeg.setup();
     var rightLeg = new LegsShape(GL, SHADER_PROGRAM, _position, _color, _Mmatrix, -1);
