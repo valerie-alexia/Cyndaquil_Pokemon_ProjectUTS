@@ -25,7 +25,7 @@ export class HeadShape {
         );
         const headMatrix = LIBS.get_I4();
         // LIBS.translateY(headMatrix, -0.5);
-        this.addObject(head.vertices, head.indices, headMatrix);
+        this.addObject(head.vertices, head.faces, headMatrix);
 
         // ===== SNOUT =====
         const snout = this.createEllipticParaboloid(0.8, 0.42, 0.7, 250,
@@ -38,7 +38,7 @@ export class HeadShape {
         snoutMatrix[0] *= 1.1;
         snoutMatrix[5] *= 1.7;
         snoutMatrix[10] *= 0.7;
-        this.addObject(snout.vertices, snout.indices, snoutMatrix);
+        this.addObject(snout.vertices, snout.faces, snoutMatrix);
 
         // ===== EARS =====
         const ears = this.createBluntCone(0.25, 0.1, 0.4, 120, [0.25, 0.2, 0.3]);
@@ -47,33 +47,33 @@ export class HeadShape {
         LIBS.translateX(earsMatrix, -0.8);
         LIBS.rotateZ(earsMatrix, 0.8);
         LIBS.rotateX(earsMatrix, -1);
-        this.addObject(ears.vertices, ears.indices, earsMatrix);
+        this.addObject(ears.vertices, ears.faces, earsMatrix);
         const earsMatrix2 = LIBS.get_I4();
         LIBS.translateY(earsMatrix2, 0.5);
         LIBS.translateX(earsMatrix2, 0.8);
         LIBS.rotateZ(earsMatrix2, -0.8);
         LIBS.rotateX(earsMatrix2, -1);
-        this.addObject(ears.vertices, ears.indices, earsMatrix2);
+        this.addObject(ears.vertices, ears.faces, earsMatrix2);
 
         // ===== EYES =====
         const eyeGeo = this.createTriangle([1.0, 1.0, 0.95], [0, 0.1, 0], [0, -0.1, 0.1], [-0.6, 0, 0]); // Geometri mata sipit
         const eyeMatrix = LIBS.get_I4();
-        LIBS.translateX(eyeMatrix, 0.8);
+        LIBS.translateX(eyeMatrix, 0.7);
         LIBS.translateZ(eyeMatrix, 1);
         LIBS.rotateX(eyeMatrix, 0.2);
-        LIBS.rotateY(eyeMatrix, 0.9);
+        LIBS.rotateY(eyeMatrix, 1.1);
         // Mata Kanan
-        this.addObject(eyeGeo.vertices, eyeGeo.indices, eyeMatrix);
+        this.addObject(eyeGeo.vertices, eyeGeo.faces, eyeMatrix);
         // Kelopak
         const kelopak = this.createSemicircle(0.3, 10, [0.25, 0.2, 0.3]);
         const kelopakMatrix = LIBS.get_I4();
         LIBS.translateY(kelopakMatrix, 0.07);
-        LIBS.translateX(kelopakMatrix, 0.68);
-        LIBS.translateZ(kelopakMatrix, 1.2);
+        LIBS.translateX(kelopakMatrix, 0.6);
+        LIBS.translateZ(kelopakMatrix, 1.3);
         LIBS.rotateX(kelopakMatrix, -0.2);
-        LIBS.rotateY(kelopakMatrix, 1.2);
+        LIBS.rotateY(kelopakMatrix, 1);
         LIBS.rotateZ(kelopakMatrix, 0.2);
-        this.addObject(kelopak.vertices, kelopak.indices, kelopakMatrix);
+        this.addObject(kelopak.vertices, kelopak.faces, kelopakMatrix);
         // Pupil
         const pupil = this.createShape(0.1, 10, [1.84, 0.32, 0.35]);
         const pupilMatrix = LIBS.get_I4();
@@ -82,10 +82,10 @@ export class HeadShape {
         LIBS.translateX(pupilMatrix, 0.68);
         LIBS.translateY(pupilMatrix, -0.02);
         LIBS.translateZ(pupilMatrix, 1.22);
-        LIBS.rotateX(pupilMatrix, -0.2);
+        LIBS.rotateX(pupilMatrix, -0.12);
         LIBS.rotateY(pupilMatrix, 1.2);
         LIBS.rotateZ(pupilMatrix, 0.2);
-        this.addObject(pupil.vertices, pupil.indices, pupilMatrix);
+        this.addObject(pupil.vertices, pupil.faces, pupilMatrix);
         const pupil0 = this.createShape(0.1, 10, [0, 0, 0]);
         const pupilMatrix0 = LIBS.get_I4();
         LIBS.scaleX(pupilMatrix0, 0.3);
@@ -96,7 +96,7 @@ export class HeadShape {
         LIBS.rotateX(pupilMatrix0, -0.2);
         LIBS.rotateY(pupilMatrix0, 1.2);
         LIBS.rotateZ(pupilMatrix0, 0.2);
-        this.addObject(pupil0.vertices, pupil0.indices, pupilMatrix0);
+        this.addObject(pupil0.vertices, pupil0.faces, pupilMatrix0);
         const pupil1 = this.createShape(0.1, 10, [1, 1, 1]);
         const pupilMatrix1 = LIBS.get_I4();
         LIBS.scaleX(pupilMatrix1, 0.32);
@@ -107,19 +107,19 @@ export class HeadShape {
         LIBS.rotateX(pupilMatrix1, -0.2);
         LIBS.rotateY(pupilMatrix1, 1.2);
         LIBS.rotateZ(pupilMatrix1, 0.2);
-        this.addObject(pupil1.vertices, pupil1.indices, pupilMatrix1);
+        this.addObject(pupil1.vertices, pupil1.faces, pupilMatrix1);
 
 
 
         // Mata Kanan
         const reyeGeo = this.createTriangle([1.0, 1.0, 0.95], [0, 0.1, 0], [0, -0.1, 0.1], [-0.6, 0, 0]); // Geometri mata sipit
         const reyeMatrix = LIBS.get_I4();
-        LIBS.translateX(reyeMatrix, -0.9);
+        LIBS.translateX(reyeMatrix, -0.8);
         LIBS.translateZ(reyeMatrix, 1);
         LIBS.rotateX(reyeMatrix, 0.2);
-        LIBS.rotateY(reyeMatrix, 2.3);
+        LIBS.rotateY(reyeMatrix, 2);
         // Mata Kanan
-        this.addObject(reyeGeo.vertices, reyeGeo.indices, reyeMatrix);
+        this.addObject(reyeGeo.vertices, reyeGeo.faces, reyeMatrix);
         // Kelopak
         const rkelopak = this.createSemicircle(0.3, 10, [0.25, 0.2, 0.3]);
         const rkelopakMatrix = LIBS.get_I4();
@@ -129,7 +129,7 @@ export class HeadShape {
         LIBS.rotateX(rkelopakMatrix, -0.2);
         LIBS.rotateY(rkelopakMatrix, -1.2);
         LIBS.rotateZ(rkelopakMatrix, -0.2);
-        this.addObject(rkelopak.vertices, rkelopak.indices, rkelopakMatrix);
+        this.addObject(rkelopak.vertices, rkelopak.faces, rkelopakMatrix);
         // Pupil
         const rpupil = this.createShape(0.1, 10, [1.84, 0.32, 0.35]);
         const rpupilMatrix = LIBS.get_I4();
@@ -138,10 +138,10 @@ export class HeadShape {
         LIBS.translateX(rpupilMatrix, -0.7);
         LIBS.translateY(rpupilMatrix, -0.02);
         LIBS.translateZ(rpupilMatrix, 1.22);
-        LIBS.rotateX(rpupilMatrix, -0.2);
+        LIBS.rotateX(rpupilMatrix, -0.12);
         LIBS.rotateY(rpupilMatrix, -1.2);
         LIBS.rotateZ(rpupilMatrix, -0.2);
-        this.addObject(rpupil.vertices, rpupil.indices, rpupilMatrix);
+        this.addObject(rpupil.vertices, rpupil.faces, rpupilMatrix);
         const rpupil0 = this.createShape(0.1, 10, [0, 0, 0]);
         const rpupilMatrix0 = LIBS.get_I4();
         LIBS.scaleX(rpupilMatrix0, 0.3);
@@ -152,7 +152,7 @@ export class HeadShape {
         LIBS.rotateX(rpupilMatrix0, -0.2);
         LIBS.rotateY(rpupilMatrix0, -1.2);
         LIBS.rotateZ(rpupilMatrix0, -0.2);
-        this.addObject(rpupil0.vertices, rpupil0.indices, rpupilMatrix0);
+        this.addObject(rpupil0.vertices, rpupil0.faces, rpupilMatrix0);
         const rpupil1 = this.createShape(0.1, 10, [1, 1, 1]);
         const rpupilMatrix1 = LIBS.get_I4();
         LIBS.scaleX(rpupilMatrix1, 0.32);
@@ -163,7 +163,7 @@ export class HeadShape {
         LIBS.rotateX(rpupilMatrix1, -0.2);
         LIBS.rotateY(rpupilMatrix1, -1.2);
         LIBS.rotateZ(rpupilMatrix1, -0.2);
-        this.addObject(rpupil1.vertices, rpupil1.indices, rpupilMatrix1);
+        this.addObject(rpupil1.vertices, rpupil1.faces, rpupilMatrix1);
         
 
         // ===== MOUTH =====
@@ -190,7 +190,7 @@ export class HeadShape {
         LIBS.scaleY(mouthMatrix, 0.5); // Buat lebih pipih
 
         // Tambahkan objek mulut
-        this.addObject(mouthGeo.vertices, mouthGeo.indices, mouthMatrix);
+        this.addObject(mouthGeo.vertices, mouthGeo.faces, mouthMatrix);
         
         // ===== DETAILS =====
         // const eyeGeo = this.createSemicircle(0.4, 20, [1.0, 1.0, 0.95]); // Geometri mata sipit
@@ -213,13 +213,13 @@ export class HeadShape {
         LIBS.rotateX(this.POSITION_MATRIX, 0.1);
     }
 
-    addObject(vertices, indices, localMatrix = null) {
-        this.OBJECTS.push({ vertices, indices, localMatrix });
+    addObject(vertices, faces, localMatrix = null) {
+        this.OBJECTS.push({ vertices, faces, localMatrix });
     }
 
     createSemicircle(radius, segments, color) {
         const vertices = [];
-        const indices = [];
+        const faces = [];
 
         // Center vertex (origin) with color
         vertices.push(0, 0, 0, ...color);
@@ -232,31 +232,31 @@ export class HeadShape {
             vertices.push(x, y, 0, ...color);
         }
 
-        // Indices to form triangles
+        // faces to form triangles
         for (let i = 1; i <= segments; i++) {
-            indices.push(0, i, i + 1);
+            faces.push(0, i, i + 1);
         }
 
-        return { vertices, indices };
+        return { vertices, faces };
     }
     createShape(radius, segments, color) {
         const vertices = [0, 0, 0, ...color]; // Center vertex (x,y,z, r,g,b)
-        const indices = [];
+        const faces = [];
         for (let i = 0; i <= segments; i++) {
             const angle = (i / segments) * 2 * Math.PI; // Full circle
             const x = radius * Math.cos(angle);
             const y = radius * Math.sin(angle);
             vertices.push(x, y, 0, ...color);
         }
-        // Indices form a triangle fan originating from the center (vertex 0)
+        // faces form a triangle fan originating from the center (vertex 0)
         for (let i = 1; i <= segments; i++) {
-            indices.push(0, i, i + 1);
+            faces.push(0, i, i + 1);
         }
-        return { vertices, indices };
+        return { vertices, faces };
     }
 
     createEllipsoid(rx, ry, rz, lats, longs, topColor, bottomColor) {
-        const vertices = [], indices = [];
+        const vertices = [], faces = [];
         for (let i = 0; i <= lats; i++) {
             const latAngle = (Math.PI / lats) * i - Math.PI / 2;
             for (let j = 0; j <= longs; j++) {
@@ -265,7 +265,7 @@ export class HeadShape {
                 const y = ry * Math.sin(latAngle);
                 const z = rz * Math.sin(longAngle) * Math.cos(latAngle);
                 let c;
-                if (z < -0.1) {
+                if (z < -0.2) {
                     // Bagian belakang (z negatif) selalu topColor (ungu)
                     c = topColor;
                 } else {
@@ -297,15 +297,15 @@ export class HeadShape {
             for (let j = 0; j < longs; j++) {
                 const first = i * (longs + 1) + j;
                 const second = first + longs + 1;
-                indices.push(first, second, first + 1);
-                indices.push(second, second + 1, first + 1);
+                faces.push(first, second, first + 1);
+                faces.push(second, second + 1, first + 1);
             }
         }
-        return { vertices, indices };
+        return { vertices, faces };
     }
 
     createEllipticParaboloid(a, b, height, segments, topColor, bottomColor) {
-        const vertices = [], indices = [];
+        const vertices = [], faces = [];
         for (let i = 0; i <= segments; i++) {
             const u = i / segments;
             const u_sq = u * u;
@@ -316,7 +316,7 @@ export class HeadShape {
                 const z = height * 2.5 * u * u;
                 // Atur batas Y di "samping" moncong (saat x maksimum)
                 // Gunakan u_sq agar naiknya lebih cepat di pangkal
-                const boundary_y_at_side = 1 * b * u_sq;
+                const boundary_y_at_side = 0.78 * b * u_sq;
 
                 // Atur batas Y di "tengah" moncong (saat x = 0)
                 // Kita juga buat ini naik, tapi mungkin lebih lambat
@@ -347,11 +347,11 @@ export class HeadShape {
             for (let j = 0; j < segments; j++) {
                 const first = i * (segments + 1) + j;
                 const second = first + segments + 1;
-                indices.push(first, second, first + 1);
-                indices.push(second, second + 1, first + 1);
+                faces.push(first, second, first + 1);
+                faces.push(second, second + 1, first + 1);
             }
         }
-        return { vertices, indices };
+        return { vertices, faces };
     }
 
     createTriangle(color, v1 = [-0.1, 0.3, 0], v2 = [0.1, -0.3, 0], v3 = [-0.7, 0, 0]) {
@@ -361,12 +361,12 @@ export class HeadShape {
             ...v2, ...color, // Titik 2 (Base bottom, sedikit ke kanan)
             ...v3, ...color  // Titik 3 (Tip, jauh ke kiri)
         ];
-        const indices = [0, 1, 2];
-        return { vertices, indices };
+        const faces = [0, 1, 2];
+        return { vertices, faces };
     }
     createBluntCone(bottomRadius, topRadius, height, segments, color) {
         const vertices = [];
-        const indices = [];
+        const faces = [];
         const halfHeight = height / 2;
         const stacks = Math.floor(segments / 2); // Jumlah tumpukan untuk tutup bulat
 
@@ -390,8 +390,8 @@ export class HeadShape {
             const bottomLeft = topLeft + 1;
             const bottomRight = bottomLeft + 2;
 
-            indices.push(topLeft, bottomLeft, topRight); // Segitiga pertama
-            indices.push(topRight, bottomLeft, bottomRight); // Segitiga kedua
+            faces.push(topLeft, bottomLeft, topRight); // Segitiga pertama
+            faces.push(topRight, bottomLeft, bottomRight); // Segitiga kedua
         }
 
         // BAGIAN 2: Membuat Tutup Atas yang Bulat (Hemisphere)
@@ -417,8 +417,8 @@ export class HeadShape {
             for (let j = 0; j < segments; j++) {
                 const first = baseIndex + i * (segments + 1) + j;
                 const second = first + segments + 1;
-                indices.push(first, second, first + 1);
-                indices.push(second, second + 1, first + 1);
+                faces.push(first, second, first + 1);
+                faces.push(second, second + 1, first + 1);
             }
         }
 
@@ -428,14 +428,14 @@ export class HeadShape {
         for (let i = 0; i < segments; i++) {
             const bottom = i * 2 + 1;
             const bottomRight = bottom + 2;
-            indices.push(bottom, bottomRight, baseIndex);
+            faces.push(bottom, bottomRight, baseIndex);
         }
 
-        return { vertices, indices };
+        return { vertices, faces };
     }
     createFlameElement(baseRadius, tipRadius, height, segments, primaryColor, secondaryColor) {
         const vertices = [];
-        const indices = [];
+        const faces = [];
 
         // Mirip dengan kerucut tumpul, tapi dengan pewarnaan gradien
         for (let i = 0; i <= segments; i++) {
@@ -463,12 +463,12 @@ export class HeadShape {
             for (let j = 0; j < segments; j++) {
                 const first = i * (segments + 1) + j;
                 const second = first + segments + 1;
-                indices.push(first, second, first + 1);
-                indices.push(second, second + 1, first + 1);
+                faces.push(first, second, first + 1);
+                faces.push(second, second + 1, first + 1);
             }
         }
 
-        return { vertices, indices };
+        return { vertices, faces };
     }
 
 
@@ -480,7 +480,7 @@ export class HeadShape {
 
             obj.indexBuffer = this.GL.createBuffer();
             this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, obj.indexBuffer);
-            this.GL.bufferData(this.GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(obj.indices), this.GL.STATIC_DRAW);
+            this.GL.bufferData(this.GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(obj.faces), this.GL.STATIC_DRAW);
         });
     }
 
@@ -500,7 +500,7 @@ export class HeadShape {
             this.GL.vertexAttribPointer(this._color, 3, this.GL.FLOAT, false, 24, 12);
 
             this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, obj.indexBuffer);
-            this.GL.drawElements(this.GL.TRIANGLES, obj.indices.length, this.GL.UNSIGNED_SHORT, 0);
+            this.GL.drawElements(this.GL.TRIANGLES, obj.faces.length, this.GL.UNSIGNED_SHORT, 0);
         });
     }
 }

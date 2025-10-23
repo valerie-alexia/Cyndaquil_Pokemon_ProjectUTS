@@ -169,22 +169,24 @@ function main() {
     let jumpProgress = 0; // 0 mulai, 1 selesai 
 
 
-    let isPulsing = false;
-    let pulseStartTime = 0;
-    const pulseDuration = 1200;
-    const pulseSpeed = 0.005;
-    const minScale = 0.9;
-    const maxScale = 1.1;
+    let isScaling = false;       // Status animasi scaling
+    let scaleStartTime = 0;      // Waktu mulai scaling
+    const scaleDuration = 500;   // Durasi transisi scaling (ms)
+    let currentScale = 1.0;      // Skala saat ini (mulai dari 1)
+    let targetScale = 1.0;       // Skala tujuan (1.0 atau scaleFactor)
+    const scaleFactor = 1.02;
 
+    // Fungsi Easing Sederhana
+    function easeInOutQuad(t) {
+        return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    }
+    // Fungsi Interpolasi Linear (Lerp)
+    function lerp(start, end, t) {
+        return start * (1 - t) + end * t;
+    }
 
-    let isRotatingArb = false;
-    let rotateArbStartTime = 0;
-    const rotateArbDuration = 2000;
-    const rotateArbSpeed = 0.003;
-    const rotateAxis = [1, 1, 1]; // Contoh: sumbu diagonal X & Y
+    var isAnyAnimationRunning = () => nod || shakeHead || isJumping;
 
-    var isAnyAnimationRunning = () => nod || shakeHead || isJumping || isPulsing || isRotatingArb;
-    
     var keyDown = function (e) {
         if (e.key === 'w') {
             dY -= SPEED;
@@ -210,24 +212,20 @@ function main() {
             shakeHead = true;
             shakeStartTime = performance.now();
         }
-        else if (e.code === 'Space' || e.key === ' ') {
-            console.log('ppp');
-
-            // Hanya mulai jika tidak sedang melompat atau animasi lain
+        else if (e.key === 'Space' || e.key === ' ') {
             // if (!isAnyAnimationRunning) {
             isJumping = true;
             jumpProgress = 0;
             jumpStartTime = performance.now();
             // }
         }
-        else if (e.key === 'p') {
-            isPulsing = true;
-            pulseStartTime = performance.now();
+        else if (e.key === 'g' && !isScaling) { // Hanya mulai jika tidak sedang scaling
+            isScaling = true;
+            scaleStartTime = performance.now();
+            // Balikkan target scale
+            targetScale = (currentScale === 1.0) ? scaleFactor : 1.0;
         }
-        else if (e.key === 'r') {
-            isRotatingArb = true;
-            rotateArbStartTime = performance.now();
-        }
+
     };
 
     window.addEventListener("keydown", keyDown, false);
@@ -316,31 +314,31 @@ function main() {
             }
         };
 
-        // Animasi Pulse
 
-        if (isPulsing) {
-            const elapsedTime = currentTime - pulseStartTime;
-            if (elapsedTime < pulseDuration) {
-                const pulsePhase = elapsedTime * pulseSpeed;
-                // Skala berdenyut antara minScale dan maxScale
-                const scaleFactor = minScale + (maxScale - minScale) * (Math.sin(pulsePhase * Math.PI * 2) * 0.5 + 0.5);
-                // Terapkan scaling ke body.MOVE_MATRIX (atau MOVEMATRIX jika ingin skala global)
-                LIBS.scale(body.MOVE_MATRIX, scaleFactor, scaleFactor, scaleFactor);
-                // Catatan: Scaling ini mungkin mempengaruhi posisi child jika pivot tidak di (0,0,0)
-            } else {
-                isPulsing = false;
+        if (isScaling) {
+            const elapsedScaleTime = currentTime - scaleStartTime;
+            let scaleProgress = Math.min(elapsedScaleTime / scaleDuration, 1.0); // 0 -> 1
+            scaleProgress = easeInOutQuad(scaleProgress); // Terapkan easing
+
+            // Hitung skala saat ini dari skala sebelumnya ke target
+            const startScale = (targetScale === scaleFactor) ? 1.0 : scaleFactor; // Tentukan skala awal
+            currentScale = lerp(startScale, targetScale, scaleProgress);
+
+            // Terapkan scaling ke BODY
+            LIBS.scaleX(body.MOVE_MATRIX, currentScale);
+            LIBS.scaleY(body.MOVE_MATRIX, currentScale);
+            LIBS.scaleZ(body.MOVE_MATRIX, currentScale);
+
+            if (elapsedScaleTime >= scaleDuration) {
+                isScaling = false; // Hentikan animasi scaling
+                currentScale = targetScale; // Pastikan skala akhir tepat
             }
-        }
-
-        // Rotasi Arbitrary
-        if (isRotatingArb) { 
-            const elapsedTime = currentTime - rotateArbStartTime;
-            if (elapsedTime < rotateArbDuration) {
-                const rotateAngle = elapsedTime * rotateArbSpeed * Math.PI * 2;
-                // Terapkan rotasi ke lengan kanan di sekitar sumbu rotateAxis
-                LIBS.rotate(MOVEMATRIX, rotateAngle, rotateAxis);
-            } else {
-                isRotatingArb = false;
+        } else {
+            // Jika tidak scaling, pastikan skala tetap di nilai terakhir
+            if (currentScale !== 1.0) { // Hanya terapkan jika tidak normal
+                LIBS.scaleX(body.MOVE_MATRIX, currentScale);
+                LIBS.scaleY(body.MOVE_MATRIX, currentScale);
+                LIBS.scaleZ(body.MOVE_MATRIX, currentScale);
             }
         }
 

@@ -102,7 +102,7 @@ function generateSphere(a, b, c, stack, step) {
         }
     }
 
-    // Generate faces (indices)
+    // Generate faces (faces)
     for (var i = 0; i < stack; i++) {
         for (var j = 0; j < step; j++) {
             var first = i * (step + 1) + j;
@@ -136,11 +136,11 @@ function generateHyper1d(a, b, c, stack, step, uBottomTrimRatio = 0) {
 
     // --- Parameter Kalung ---
     // Posisi Y tengah kalung
-    const centerNeckY_front = -1.5; // Tengah kalung di depan (z positif)
+    const centerNeckY_front = -1.4; // Tengah kalung di depan (z positif)
     const centerNeckY_back = 0.6;  // Tengah kalung di belakang (z negatif, lebih naik)
     // Lebar vertikal kalung
-    const neckHeight_front = 0.7;   // Lebar kalung di depan
-    const neckHeight_back = 0.3;    // Lebar kalung di belakang
+    const neckHeight_front = 0.6;   // Lebar kalung di depan
+    const neckHeight_back = 0.1;    // Lebar kalung di belakang
 
     // Warna
     const backColorR = 0.25;
@@ -189,7 +189,7 @@ function generateHyper1d(a, b, c, stack, step, uBottomTrimRatio = 0) {
                 r = backColorR; g = backColorG; bcol = backColorB;
             } else {
                 // Di Luar Kalung
-                if (z >= 0) { // Depan
+                if (z >= -0.2) { // Depan
                     r = frontColorR; g = frontColorG; bcol = frontColorB;
                 } else { // Belakang
                     r = backColorR; g = backColorG; bcol = backColorB;

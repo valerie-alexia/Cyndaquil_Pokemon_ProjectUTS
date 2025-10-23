@@ -12,6 +12,20 @@ var LIBS = {
         }
         return rm;
     },
+    scale: function (mat, sx, sy, sz) {
+        const scaleMat = [
+            sx, 0, 0, 0,
+            0, sy, 0, 0,
+            0, 0, sz, 0,
+            0, 0, 0, 1
+        ];
+
+        const result = LIBS.multiply(scaleMat, mat);
+
+        for (let i = 0; i < 16; i++) {
+            mat[i] = result[i];
+        }
+    },
     scaleX: function (m, t) {
         m[0] *= t;
     },
