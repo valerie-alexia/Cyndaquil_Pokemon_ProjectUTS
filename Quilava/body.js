@@ -1,4 +1,3 @@
-// body.js
 export class BodyShape {
     GL = null;
     SHADER_PROGRAM = null;
@@ -11,6 +10,22 @@ export class BodyShape {
     POSITION_MATRIX = LIBS.get_I4();
     MOVE_MATRIX = LIBS.get_I4();
     childs = [];
+
+    // --- BARU: Properti untuk state animasi ---
+    animationState = "STANDING"; // "STANDING", "TO_CRAWL", "CRAWLING", "TO_STAND"
+    animationProgress = 0.0;     // 0.0 sampai 1.0
+    animationDuration = 1.5;     // Durasi transisi dalam detik
+    animationStartTime = 0.0;
+    isAnimating = false;
+    needsToToggleState = false;
+
+    // --- BARU: Nilai target untuk pose ---
+    standRotX = 0.0;
+    standPosY = 0.0;
+    standPosZ = 0.0;
+    crawlRotX = Math.PI / 2.5; // 90 derajat
+    crawlPosY = -3.5;        // Turunkan badan saat merangkak
+    crawlPosZ = 4.5;
 
     constructor(GL, SHADER_PROGRAM, _position, _color, _MMatrix) {
         this.GL = GL;
@@ -54,30 +69,21 @@ export class BodyShape {
         const rotationFlip = Math.PI; 
 
         const flameSpikes = [
-            // Paku 1: tengah panjang
-            //x,y,z       rotX,rotY,rotZ           scaleX,scaleY,scaleZ
+            // ... (definisi flameSpikes Anda tidak berubah) ...
             { t: [0.0, -2.3, -2], r: [-0.7, baseRotationY, rotationFlip], s: [1, 2, 1] },
-            // Paku 2: kanan panjang
             { t: [1.5, -2.6, -1.7], r: [-0.7, baseRotationY, -0.6 + rotationFlip], s: [1, 1.5, 1] },
-            // Paku 3: Kiri panjang
             { t: [-1.5, -2.6, -1.7], r: [-0.7, baseRotationY, 0.6 + rotationFlip], s: [1, 1.5, 1] },
-            
-            // Paku 4: kanan lebih ke depan medium
             { t: [2, -3.3, -1], r: [-0.7, baseRotationY, -0.8 + rotationFlip], s: [0.4, 1.2, 1] },
-            // Paku 5: kiri lebih ke depan medium
             { t: [-2, -3.3, -1], r: [-0.7, baseRotationY, 0.8 + rotationFlip], s: [0.4, 1.2, 1] },
-        
-            // Paku 6: kanan paling belakang tipis
             { t: [0.7, -2.3, -2], r: [-0.7, baseRotationY, -0.3 + rotationFlip], s: [0.3, 1, 1] }, 
-            // Paku 7: kiri paling belakang tipis
             { t: [-0.7, -2.3, -2], r: [-0.7, baseRotationY, 0.3 + rotationFlip], s: [0.3, 1, 1] }
         ];
 
         flameSpikes.forEach((spike) => {
+            // ... (logika pembuatan flame Anda tidak berubah) ...
             const outerTranslation = [spike.t[0], spike.t[1], spike.t[2] - 0.01];
             const outerRotation = spike.r;
             const outerScale = spike.s;
-
             this.FLAME_OBJECTS.push({
                 vertices: triangleGeoOuter.vertices,
                 indices: triangleGeoOuter.indices,
@@ -88,7 +94,6 @@ export class BodyShape {
                 baseRotation: outerRotation,
                 baseScale: outerScale
             });
-            // Inner flame part (yellow right)
             const innerRightTranslation = [spike.t[0], spike.t[1], spike.t[2] + 0.01];
             const innerRightRotation = spike.r;
             const innerRightScale = [spike.s[0] * 0.7, spike.s[1] * 0.7, spike.s[2]];
@@ -102,8 +107,6 @@ export class BodyShape {
                 baseRotation: innerRightRotation,
                 baseScale: innerRightScale
             });
-
-            // Inner flame part (yellow left)
             const innerLeftTranslation = [spike.t[0] - 0.01, spike.t[1], spike.t[2] + 0.01];
             const innerLeftRotation = spike.r;
             const innerLeftScale = [spike.s[0] * 0.7, spike.s[1] * 0.7, spike.s[2]];
@@ -112,15 +115,14 @@ export class BodyShape {
                 indices: triangleGeoInner.indices,
                 localMatrix: this.createTransformMatrixLIBS({
                 translation: innerLeftTranslation, rotation: innerLeftRotation, scale: innerLeftScale
-            }),
-            baseTranslation: innerLeftTranslation,
-            baseRotation: innerLeftRotation,
-            baseScale: innerLeftScale
+                }),
+                baseTranslation: innerLeftTranslation,
+                baseRotation: innerLeftRotation,
+                baseScale: innerLeftScale
+            });
         });
-    });
 
         this.MOVE_MATRIX = LIBS.get_I4();
-
     }
 
     addObject(vertices, indices, localMatrix = null) {
@@ -129,88 +131,67 @@ export class BodyShape {
     }
 
     setup() {
+        // ... (Fungsi setup() Anda tidak berubah) ...
         this.OBJECTS.forEach((obj) => {
-        obj.vertexBuffer = this.GL.createBuffer();
-        this.GL.bindBuffer(this.GL.ARRAY_BUFFER, obj.vertexBuffer);
-        this.GL.bufferData(
-            this.GL.ARRAY_BUFFER,
-            new Float32Array(obj.vertices),
-            this.GL.STATIC_DRAW
-        );
+            obj.vertexBuffer = this.GL.createBuffer();
+            this.GL.bindBuffer(this.GL.ARRAY_BUFFER, obj.vertexBuffer);
+            this.GL.bufferData(
+                this.GL.ARRAY_BUFFER,
+                new Float32Array(obj.vertices),
+                this.GL.STATIC_DRAW
+            );
 
-        obj.indexBuffer = this.GL.createBuffer();
-        this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, obj.indexBuffer);
-        this.GL.bufferData(
-            this.GL.ELEMENT_ARRAY_BUFFER,
-            new Uint16Array(obj.indices),
-            this.GL.STATIC_DRAW
-        );
+            obj.indexBuffer = this.GL.createBuffer();
+            this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, obj.indexBuffer);
+            this.GL.bufferData(
+                this.GL.ELEMENT_ARRAY_BUFFER,
+                new Uint16Array(obj.indices),
+                this.GL.STATIC_DRAW
+            );
         });
         this.FLAME_OBJECTS.forEach((obj) => {
-          obj.vertexBuffer = this.GL.createBuffer();
-          this.GL.bindBuffer(this.GL.ARRAY_BUFFER, obj.vertexBuffer);
-          this.GL.bufferData(
-            this.GL.ARRAY_BUFFER,
-            new Float32Array(obj.vertices),
-            this.GL.STATIC_DRAW
-          );
-          obj.indexBuffer = this.GL.createBuffer();
-          this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, obj.indexBuffer);
-          this.GL.bufferData(
-            this.GL.ELEMENT_ARRAY_BUFFER,
-            new Uint16Array(obj.indices),
-            this.GL.STATIC_DRAW
-          );
-        });
+            obj.vertexBuffer = this.GL.createBuffer();
+            this.GL.bindBuffer(this.GL.ARRAY_BUFFER, obj.vertexBuffer);
+            this.GL.bufferData(
+                this.GL.ARRAY_BUFFER,
+                new Float32Array(obj.vertices),
+                this.GL.STATIC_DRAW
+            );
+            obj.indexBuffer = this.GL.createBuffer();
+            this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, obj.indexBuffer);
+            this.GL.bufferData(
+                this.GL.ELEMENT_ARRAY_BUFFER,
+                new Uint16Array(obj.indices),
+                this.GL.STATIC_DRAW
+            );
+        });
         this.childs.forEach((child) => child.setup());
     }
 
+   // Di dalam class BodyShape (body.js)
+
     render(PARENT_MATRIX) {
-        const MODEL_MATRIX = LIBS.multiply(
-        PARENT_MATRIX,
-        LIBS.multiply(this.POSITION_MATRIX, this.MOVE_MATRIX)
-        );
+        // --- PERCOBAAN: Balik Urutan Perkalian ---
+        // Urutan: (Position * Move) * Parent
+        const LOCAL_BODY_TRANSFORM = LIBS.multiply(this.POSITION_MATRIX, this.MOVE_MATRIX);
+        const MODEL_MATRIX = LIBS.multiply(LOCAL_BODY_TRANSFORM, PARENT_MATRIX); // <-- URUTAN DIBALIK
+        // --- Akhir Percobaan ---
 
-        // mat4.multiply(MODEL_MATRIX, this.POSITION_MATRIX, this.MOVE_MATRIX);
-        // mat4.multiply(MODEL_MATRIX, PARENT_MATRIX, MODEL_MATRIX);
-
+        // Render OBJECTS (bagian badan utama)
         this.OBJECTS.forEach((obj) => {
-        let M = MODEL_MATRIX;
-        if (obj.localMatrix) M = LIBS.multiply(obj.localMatrix, MODEL_MATRIX);
-
-        this.GL.useProgram(this.SHADER_PROGRAM);
-        this.GL.uniformMatrix4fv(this._MMatrix, false, M);
-
-        this.GL.bindBuffer(this.GL.ARRAY_BUFFER, obj.vertexBuffer);
-        this.GL.vertexAttribPointer(
-            this._position,
-            3,
-            this.GL.FLOAT,
-            false,
-            24,
-            0
-        );
-        this.GL.vertexAttribPointer(this._color, 3, this.GL.FLOAT, false, 24, 12);
-
-        this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, obj.indexBuffer);
-        this.GL.drawElements(
-            this.GL.TRIANGLES,
-            obj.indices.length,
-            this.GL.UNSIGNED_SHORT,
-            0
-        );
-        });
-
-        this.FLAME_OBJECTS.forEach((obj) => {
-            let M = LIBS.multiply(obj.localMatrix, MODEL_MATRIX);
+            let M = MODEL_MATRIX;
+            if (obj.localMatrix) {
+                 // Urutan: PartLocal * BodyModel (konsisten dengan di atas)
+                 M = LIBS.multiply(obj.localMatrix, MODEL_MATRIX); // <-- URUTAN DIBALIK
+            }
 
             this.GL.useProgram(this.SHADER_PROGRAM);
             this.GL.uniformMatrix4fv(this._MMatrix, false, M);
 
+            // ... (kode bindBuffer, vertexAttribPointer, drawElements tetap sama) ...
             this.GL.bindBuffer(this.GL.ARRAY_BUFFER, obj.vertexBuffer);
             this.GL.vertexAttribPointer(this._position, 3, this.GL.FLOAT, false, 24, 0);
             this.GL.vertexAttribPointer(this._color, 3, this.GL.FLOAT, false, 24, 12);
-
             this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, obj.indexBuffer);
             this.GL.drawElements(
                 this.GL.TRIANGLES,
@@ -220,66 +201,166 @@ export class BodyShape {
             );
         });
 
+        // Render FLAME_OBJECTS
+        this.FLAME_OBJECTS.forEach((obj) => {
+            // Urutan: FlameLocal * BodyModel (konsisten dengan di atas)
+            let M = LIBS.multiply(obj.localMatrix, MODEL_MATRIX); // <-- URUTAN DIBALIK
+
+            this.GL.useProgram(this.SHADER_PROGRAM);
+            this.GL.uniformMatrix4fv(this._MMatrix, false, M);
+
+            // ... (kode bindBuffer, vertexAttribPointer, drawElements tetap sama) ...
+             this.GL.bindBuffer(this.GL.ARRAY_BUFFER, obj.vertexBuffer);
+            this.GL.vertexAttribPointer(this._position, 3, this.GL.FLOAT, false, 24, 0);
+            this.GL.vertexAttribPointer(this._color, 3, this.GL.FLOAT, false, 24, 12);
+            this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, obj.indexBuffer);
+            this.GL.drawElements(
+                this.GL.TRIANGLES,
+                obj.indices.length,
+                this.GL.UNSIGNED_SHORT,
+                0
+            );
+        });
+
+        // Render children (head, arms)
+        // Kirim MODEL_MATRIX badan sebagai parent
         this.childs.forEach((child) => child.render(MODEL_MATRIX));
+    } // Akhir fungsi render
+
+    // --- BARU: Fungsi helper untuk interpolasi ---
+    _lerp(a, b, t) {
+        return a + (b - a) * t;
     }
 
+    // --- BARU: Fungsi untuk memicu transisi ---
+    // Panggil ini dari main.js (misalnya, saat tombol ditekan)
+    // 'currentTime' harus didapat dari main loop Anda (misal: Date.now() / 1000.0)
+    toggleCrawlState(currentTime) {
+        if (this.isAnimating) return; // Jangan interrupt animasi yang sedang berjalan
+        this.needsToToggleState = true;
+    }
+
+    // --- MODIFIKASI: Fungsi animate() ---
     animate(time) {
-        const flickerSpeed = 6.0;  // Kecepatan kedipan
+        // --- 0. BARU: Cek bendera transisi ---
+        if (this.needsToToggleState) {
+            this.isAnimating = true;
+            this.animationStartTime = time; // <-- GUNAKAN 'time' DARI PARAMETER
+            this.animationProgress = 0.0;
+            
+            if (this.animationState === "STANDING") {
+                this.animationState = "TO_CRAWL";
+            } else if (this.animationState === "CRAWLING") {
+                this.animationState = "TO_STAND";
+            }
+            
+            this.needsToToggleState = false; // Turunkan lagi benderanya
+        }
+        
+        // --- 1. Animasi Api (Tidak berubah) ---
+        const flickerSpeed = 6.0;  // Kecepatan kedipan
         const flickerAmount = 0.2; // Intensitas kedipan
 
         this.FLAME_OBJECTS.forEach((obj, i) => {
-        // Nilai 0 sampai 1
-        const actualFlicker = 0.5 + 0.5 * Math.sin(time * flickerSpeed + i * 0.5);
-        const animatedScaleY = obj.baseScale[1] * (1.0 + actualFlicker * flickerAmount); 
+            // Nilai 0 sampai 1
+            const actualFlicker = 0.5 + 0.5 * Math.sin(time * flickerSpeed + i * 0.5);
+            const animatedScaleY = obj.baseScale[1] * (1.0 + actualFlicker * flickerAmount); 
+            const animatedScale = [obj.baseScale[0], animatedScaleY, obj.baseScale[2]];
 
-        const animatedScale = [obj.baseScale[0], animatedScaleY, obj.baseScale[2]];
+            obj.localMatrix = this.createTransformMatrixLIBS({
+                translation: obj.baseTranslation,
+                rotation: obj.baseRotation,
+                scale: animatedScale,  
+            });    
+        });
 
-        obj.localMatrix = this.createTransformMatrixLIBS({
-            translation: obj.baseTranslation,
-            rotation: obj.baseRotation,
-            scale: animatedScale,  
-        });    
-    });
-    const breathSpeed = 3; // Lebih kecil = napas lebih lambat dan tenang
-    const moveAmount = 0.05; // 0.03 = mengembang/menyusut sebesar 3%
+        // --- 2. Animasi Bernapas (Tidak berubah) ---
+        const breathSpeed = 3; 
+        const moveAmount = 0.05;
+        const breathFactor = Math.sin(time * breathSpeed); 
+        const moveY_breath = breathFactor * moveAmount; // Ganti nama variabel agar tidak konflik
 
-    // Hitung faktor gerakan menggunakan sinus (hasilnya antara -1 dan 1)
-    const breathFactor = Math.sin(time * breathSpeed); 
+        // --- 3. BARU: Animasi Transisi Berdiri/Merangkak ---
+        let crawlAmount = 0.0; // 0.0 = berdiri, 1.0 = merangkak
 
-    // Hitung pergerakan Y (naik/turun)
-    const moveY = breathFactor * moveAmount;
+        if (this.isAnimating) {
+            const elapsedTime = time - this.animationStartTime;
+            this.animationProgress = Math.min(elapsedTime / this.animationDuration, 1.0);
 
-    // Reset matriks gerakan internal badan (PENTING!)
-    LIBS.set_I4(this.MOVE_MATRIX);
-    
-    // Terapkan pergerakan NAIK/TURUN ke matriks gerakan badan
-    LIBS.translateY(this.MOVE_MATRIX, moveY);
-}
+            if (this.animationProgress >= 1.0) {
+                // Transisi selesai
+                this.isAnimating = false;
+                if (this.animationState === "TO_CRAWL") {
+                    this.animationState = "CRAWLING";
+                    crawlAmount = 1.0;
+                } else if (this.animationState === "TO_STAND") {
+                    this.animationState = "STANDING";
+                    crawlAmount = 0.0;
+                }
+            } else {
+                // Sedang dalam transisi
+                if (this.animationState === "TO_CRAWL") {
+                    crawlAmount = this.animationProgress; // 0 -> 1
+                } else if (this.animationState === "TO_STAND") {
+                    crawlAmount = 1.0 - this.animationProgress; // 1 -> 0
+                }
+            }
+        } else {
+            // Tidak sedang animasi, tahan pose saat ini
+            if (this.animationState === "CRAWLING") {
+                crawlAmount = 1.0;
+            } else { // STANDING
+                crawlAmount = 0.0;
+            }
+        }
+
+        // --- 4. Hitung Nilai Interpolasi ---
+        // Gunakan smoothstep untuk transisi yang lebih halus (ease-in/ease-out)
+        const t = crawlAmount * crawlAmount * (3 - 2 * crawlAmount);
+        
+        const currentRotationX = this._lerp(this.standRotX, this.crawlRotX, t);
+        const currentPositionY = this._lerp(this.standPosY, this.crawlPosY, t);
+        const currentPositionZ = this._lerp(this.standPosZ, this.crawlPosZ, t);
+
+        // --- 5. Terapkan SEMUA Transformasi ke MOVE_MATRIX ---
+        LIBS.set_I4(this.MOVE_MATRIX);
+        
+        // Terapkan pernapasan (translasi Y lokal)
+        LIBS.translateY(this.MOVE_MATRIX, moveY_breath);
+        
+        // Terapkan pose merangkak (turunkan badan)
+        LIBS.translateY(this.MOVE_MATRIX, currentPositionY);
+
+        // Terapkan pose merangkak (MAJUKAN BADAN)
+        LIBS.translateZ(this.MOVE_MATRIX, currentPositionZ);
+
+        // Terapkan pose merangkak (rotasi badan)
+        LIBS.rotateX(this.MOVE_MATRIX, currentRotationX);
+    }
 
     createTransformMatrixLIBS({ translation, rotation, scale }) {
+        // ... (Fungsi createTransformMatrixLIBS() Anda tidak berubah) ...
         const matrix = LIBS.get_I4();
         LIBS.scaleX(matrix, scale[0]);
         LIBS.scaleY(matrix, scale[1]);
-        LIBS.scaleZ(matrix, scale[2]);
-        LIBS.rotateZ(matrix, rotation[2]);
-        LIBS.rotateY(matrix, rotation[1]);
-        LIBS.rotateX(matrix, rotation[0]);
-        LIBS.translateX(matrix, translation[0]);
-        LIBS.translateY(matrix, translation[1]);
-        LIBS.translateZ(matrix, translation[2]);
-        return matrix;
+        LIBS.scaleZ(matrix, scale[2]);
+        LIBS.rotateZ(matrix, rotation[2]);
+        LIBS.rotateY(matrix, rotation[1]);
+        LIBS.rotateX(matrix, rotation[0]);
+        LIBS.translateX(matrix, translation[0]);
+        LIBS.translateY(matrix, translation[1]);
+        LIBS.translateZ(matrix, translation[2]);
+        return matrix;
     }
 
     generateSphere(a, b, c, stack, step) {
+        // ... (Fungsi generateSphere() Anda tidak berubah) ...
         var vertices = [];
         var faces = [];
-
-        // Generate vertices and colors
         for (var i = 0; i <= stack; i++) {
             var u = i / stack * Math.PI - (Math.PI / 2); // Latitude
             for (var j = 0; j <= step; j++) {
                 var v = j / step * 2 * Math.PI - Math.PI; // Longitude
-
                 var x = a * Math.cos(v) * Math.cos(u);
                 var y = b * Math.sin(u);
                 var z = c * Math.sin(v) * Math.cos(u);
@@ -289,17 +370,12 @@ export class BodyShape {
                     g = 0.94 + y * 0.002;
                     bcol = 0.76 + y * 0.002; // cream
                 } else {
-                    // Belakang (darkblue-gray)
                     r = 0.22; g = 0.36; bcol = 0.49; 
                 }
-                // Push vertex position
                 vertices.push(x, y, z);
-                // Push color
                 vertices.push(r, g, bcol);
             }
         }
-
-        // Generate faces (indices)
         for (var i = 0; i < stack; i++) {
             for (var j = 0; j < step; j++) {
                 var first = i * (step + 1) + j;
@@ -314,49 +390,40 @@ export class BodyShape {
     }
 
     generateHyper1d(a, b, c, stack, step, uBottomTrimRatio = 0) {
+        // ... (Fungsi generateHyper1d() Anda tidak berubah) ...
         var vertices = [];
         var faces = [];
-
         var margin = 0.4;
         var uMax = (Math.PI / 2) - margin;
         var uMin = -uMax + (2 * uMax) * Math.max(0, Math.min(0.49, uBottomTrimRatio));
-
         function smoothstep(edge0, edge1, x) {
             var t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
             return t * t * (3 - 2 * t);
         }
-
         for (var i = 0; i <= stack / 2; i++) {
             var u = uMin + (uMax - uMin) * (i / stack);
             for (var j = 0; j <= step; j++) {
                 var v = j / step * 2 * Math.PI - Math.PI;
-
                 var x = a * Math.cos(v) * 1 / Math.cos(u);
                 var y = b * Math.tan(u);
                 var z = c * Math.sin(v) * 1 / Math.cos(u);
-
-                // neck scaling
                 var vertical01 = i / (stack / 2);
                 var neckRegion = smoothstep(0.6, 1.0, vertical01);
                 var neckScale = 1.0 - 0.09 * (neckRegion * neckRegion);
                 x *= neckScale;
                 z *= neckScale;
-
                 let r, g, bcol;
                 if (z >= 0) {
                     r = 0.98 + y * 0.002;
                     g = 0.94 + y * 0.002;
                     bcol = 0.76 + y * 0.002;
                 } else {
-                    // Belakang (blue-gray) 
                     r = 0.22; g = 0.36; bcol = 0.49;
                 }
-
                 vertices.push(x, y, z);
                 vertices.push(r, g, bcol);
             }
         }
-        // Generate faces (indices)
         for (var i = 0; i < stack; i++) {
             for (var j = 0; j < step; j++) {
                 var first = i * (step + 1) + j;
@@ -371,14 +438,15 @@ export class BodyShape {
     }
 
     createTriangle(color) {
-    const v = [
-      -1.0, 1.0, 0.0,
-      ...color,
-      1.0, 1.0, 0.0,
-      ...color,
-      0.0, -1.0, 0.0,
-      ...color,
-    ];
-    return { vertices: v, indices: [0, 1, 2] };
-  }
+        // ... (Fungsi createTriangle() Anda tidak berubah) ...
+        const v = [
+            -1.0, 1.0, 0.0,
+            ...color,
+            1.0, 1.0, 0.0,
+            ...color,
+            0.0, -1.0, 0.0,
+            ...color,
+        ];
+        return { vertices: v, indices: [0, 1, 2] };
+    }
 }

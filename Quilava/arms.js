@@ -17,6 +17,26 @@ export class ArmShape {
 
   childs = [];
 
+  // --- BARU: Properti untuk state animasi ---
+    animationState = "STANDING";
+    animationProgress = 0.0;
+    animationDuration = 1.5; // Samakan dengan durasi body
+    animationStartTime = 0.0;
+    isAnimating = false;
+    needsToToggleState = false;
+
+    // --- BARU: Nilai target untuk pose tangan ---
+    initialPosX = 2.0;  // Jarak dari tengah body
+    initialPosY = 1.5;  // Posisi bahu (di atas body)
+    
+    // Target Rotasi:
+    standRotX = 0.0; // Tangan lurus ke bawah
+    
+    // Ini adalah KUNCINYA:
+    // Badan berotasi +90. Tangan harus berotasi +90 di bahu
+    // agar terjulur lurus ke depan.
+    crawlRotX = -Math.PI / 2;
+    
   // side: +1 for right arm, -1 for left arm (mirror along X)
   constructor(GL, SHADER_PROGRAM, _position, _color, _Mmatrix, side = 1) {
     this.GL = GL;
@@ -316,4 +336,63 @@ export class ArmShape {
 
     this.childs.forEach((child) => child.render(this.MODEL_MATRIX));
   }
+  // --- Fungsi Animasi BARU ---
+    
+    _lerp(a, b, t) {
+        return a + (b - a) * t;
+    }
+
+    toggleCrawlState() {
+        if (this.isAnimating) return;
+        this.needsToToggleState = true;
+    }
+
+  animate(time) {
+        if (this.needsToToggleState) {
+            this.isAnimating = true;
+            this.animationStartTime = time;
+            this.animationProgress = 0.0;
+            
+            if (this.animationState === "STANDING") {
+                this.animationState = "TO_CRAWL";
+            } else if (this.animationState === "CRAWLING") {
+                this.animationState = "TO_STAND";
+            }
+            this.needsToToggleState = false;
+        }
+
+        let crawlAmount = 0.0;
+        if (this.isAnimating) {
+            const elapsedTime = time - this.animationStartTime;
+            this.animationProgress = Math.min(elapsedTime / this.animationDuration, 1.0);
+
+            if (this.animationProgress >= 1.0) {
+                this.isAnimating = false;
+                if (this.animationState === "TO_CRAWL") this.animationState = "CRAWLING";
+                else if (this.animationState === "TO_STAND") this.animationState = "STANDING";
+            }
+            
+            if (this.animationState === "TO_CRAWL") crawlAmount = this.animationProgress;
+            else if (this.animationState === "TO_STAND") crawlAmount = 1.0 - this.animationProgress;
+            
+        } else {
+            if (this.animationState === "CRAWLING") crawlAmount = 1.0;
+            else crawlAmount = 0.0;
+        }
+
+        // Interpolasi
+        const t = crawlAmount * crawlAmount * (3 - 2 * crawlAmount);
+        const currentRotationX = this._lerp(this.standRotX, this.crawlRotX, t);
+
+        // Terapkan ke MOVE_MATRIX
+        LIBS.set_I4(this.MOVE_MATRIX);
+        LIBS.rotateX(this.MOVE_MATRIX, currentRotationX);
+        
+        // Panggil animate pada child-nya (jika ada)
+        this.childs.forEach(child => {
+            if (child.animate) {
+                child.animate(time);
+            }
+        });
+    }
 }
