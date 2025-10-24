@@ -1,3 +1,4 @@
+import { LIBS } from "./libs.js";
 export class BodyShape {
     GL = null;
     SHADER_PROGRAM = null;

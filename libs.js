@@ -1,4 +1,4 @@
-var LIBS = {
+export const LIBS = {
     multiply: function (m1, m2) {
         var rm = this.get_I4();
         var N = 4;

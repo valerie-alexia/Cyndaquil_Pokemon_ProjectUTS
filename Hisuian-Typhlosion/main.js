@@ -3,7 +3,7 @@ import { BodyShape } from "./body.js";
 import { ArmShape } from "./arms.js";
 import { LegsShape } from "./legs.js";
 import { FlameCollar } from "./flame.js";
-
+import { LIBS } from "./libs.js";
 function main() {
     /** @type {HTMLCanvasElement} */
     var CANVAS = document.getElementById("thisCanvas");

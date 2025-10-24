@@ -1,4 +1,5 @@
 
+import { LIBS } from "./libs.js";
 function generateCustomTail(length, baseRadius, tipRadius, numSegments, numSpikes, topColor) { 
     const vertices = [];
     const faces = [];

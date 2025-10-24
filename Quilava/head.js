@@ -1,4 +1,4 @@
-
+import { LIBS } from "./libs.js";
 export class HeadShape {
   GL = null;
   SHADER_PROGRAM = null;

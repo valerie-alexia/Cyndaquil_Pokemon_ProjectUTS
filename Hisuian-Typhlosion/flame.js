@@ -1,3 +1,4 @@
+import { LIBS } from "./libs.js";
 function generateFlameGeometry(length, baseRadius, tipRadius, numSegments, numSpikes, colorStart, colorEnd) {
     const vertices = []; const faces = []; const stack = numSegments * 10; const step = 50;
     for (let i = 0; i <= stack; i++) {
