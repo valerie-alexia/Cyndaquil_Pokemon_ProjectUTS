@@ -443,15 +443,16 @@ export class HeadShape {
         const x = radiusX * Math.cos(longAngle) * Math.cos(latAngle);
         const y = radiusY * Math.sin(latAngle);
         const z = radiusZ * Math.sin(longAngle) * Math.cos(latAngle);
-        let color;
-        const y_offset = -0.3 * radiusY; 
-            const z_influence_factor = -0; 
-            const separation_y = y_offset - (z * z_influence_factor);
-            if (y >= separation_y) {
-                color = topColor; // biru
-            } else {
-                color = bottomColor; // cream
-            }
+        // let color;
+        // const y_offset = -0.3 * radiusY; 
+        //     const z_influence_factor = -0; 
+        //     const separation_y = y_offset - (z * z_influence_factor);
+        //     if (y >= separation_y) {
+        //         color = topColor; // biru
+        //     } else {
+        //         color = bottomColor; // cream
+        //     }
+        const color = y >= 0 || x >=0 ? topColor : bottomColor;
             vertices.push(x, y, z, ...color);
         }
     }

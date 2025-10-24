@@ -186,10 +186,11 @@ function main() {
     }
 
     LIBS.set_I4(MOVEMATRIX);
+    LIBS.translateZ(MOVEMATRIX, 50);
     LIBS.rotateY(MOVEMATRIX, THETA);
 
     LIBS.set_I4(VIEWMATRIX);
-    LIBS.translateZ(VIEWMATRIX, -40); // Zoom
+    LIBS.translateZ(VIEWMATRIX, -70); // Zoom
     LIBS.rotateX(VIEWMATRIX, PHI); // Pitch // Kita tidak memutar Y di sini agar rotasi dunia (MOVEMATRIX) yang mengontrolnya
     GL.uniformMatrix4fv(_Pmatrix, false, PROJMATRIX);
     GL.uniformMatrix4fv(_Vmatrix, false, VIEWMATRIX); // Render Environment

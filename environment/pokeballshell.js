@@ -72,23 +72,36 @@ export class PokeballShell {
             this.bindAndDraw(obj);
         });
 
+        this.GL.disable(this.GL.CULL_FACE);
+        const pivotX = 0;
         const pivotY = this.bandHeight / 2;
-        const pivotZ = 0;
-
+        const pivotZ = this.radius; 
+        
+        // Matriks lokal saat tertutup
         const M_local_closed = this.topHalf.localMatrix;
-        let M_pivot_inv = LIBS.translate(0, -pivotY, -pivotZ);
-        let M_rot = LIBS.get_I4();
-        LIBS.rotateX(M_rot, openAngle);
-        let M_pivot = LIBS.translate(0, pivotY, pivotZ);
 
+        // 1. Translasi ke pivot (ke pusat koordinat)
+        let M_pivot_inv = LIBS.translate(-pivotX, -pivotY, -pivotZ);
+
+        // 2. Rotasi di sumbu X (Engsel sejajar sumbu Y, membuka di sumbu X)
+        let M_rot = LIBS.get_I4();
+        // Menggunakan -openAngle agar membuka ke atas/belakang (sumbu Z negatif)
+        LIBS.rotateX(M_rot, -openAngle); 
+        
+        // 3. Translasi kembali dari pivot
+        let M_pivot = LIBS.translate(pivotX, pivotY, pivotZ);
+
+        // Urutan operasi: M_pivot * M_rot * M_pivot_inv * M_local_closed
         let M_anim = LIBS.get_I4();
         M_anim = LIBS.multiply(M_pivot, M_rot);
         M_anim = LIBS.multiply(M_anim, M_pivot_inv);
-        M_anim = LIBS.multiply(M_anim, M_local_closed);
+        M_anim = LIBS.multiply(M_anim, M_local_closed); // Gabungkan dengan translasi Y lokal awal
 
         const M_final = LIBS.multiply(PARENT_MATRIX, M_anim);
         this.GL.uniformMatrix4fv(this._MMatrix, false, M_final);
         this.bindAndDraw(this.topHalf);
+
+        this.GL.enable(this.GL.CULL_FACE);
     }
 
     bindAndDraw(obj) {
