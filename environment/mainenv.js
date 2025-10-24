@@ -117,7 +117,7 @@ function main() {
   var isOpen = false; // Current state (sudah terbuka?)
   var animationProgress = 0.0; // 0.0 = tertutup, 1.0 = terbuka
   const animationSpeed = 0.05; // Kecepatan buka/tutup
-  const maxOpenAngle = Math.PI / 1.5; // Sekitar 120°, positif agar membuka ke atas
+  const maxOpenAngle = Math.PI / 2.8; // Sekitar 120°, positif agar membuka ke atas
   // Sudut bukaan (misal: 120 derajat)
 
   var mouseDown = function (e) {
@@ -186,11 +186,11 @@ function main() {
     }
 
     LIBS.set_I4(MOVEMATRIX);
-    LIBS.translateZ(MOVEMATRIX, 50);
     LIBS.rotateY(MOVEMATRIX, THETA);
 
     LIBS.set_I4(VIEWMATRIX);
-    LIBS.translateZ(VIEWMATRIX, -70); // Zoom
+    LIBS.translateZ(VIEWMATRIX, -80); // Zoom
+    LIBS.rotateX(VIEWMATRIX, 0.3); 
     LIBS.rotateX(VIEWMATRIX, PHI); // Pitch // Kita tidak memutar Y di sini agar rotasi dunia (MOVEMATRIX) yang mengontrolnya
     GL.uniformMatrix4fv(_Pmatrix, false, PROJMATRIX);
     GL.uniformMatrix4fv(_Vmatrix, false, VIEWMATRIX); // Render Environment
