@@ -5,7 +5,7 @@ export class PokeballShell {
     GL = null; SHADER_PROGRAM = null; _position = null; _color = null; _MMatrix = null;
     
     topHalf = null;
-    staticParts = []; // bottom, band, button
+    staticParts = []; // bottom, band, button parts
 
     radius = 15.0;
     bandHeight = 0;
@@ -19,11 +19,15 @@ export class PokeballShell {
 
         this.radius = 15.0;
         this.bandHeight = this.radius * 0.15;
-        const buttonRadius = this.radius * 0.2;
+
+        const buttonOuterRadius = this.radius * 0.25;
+        const buttonInnerRadius = this.radius * 0.18;
+        const buttonDepth = this.bandHeight * 1.3;
 
         const redColor = [0.8, 0.1, 0.1];
         const whiteColor = [0.95, 0.95, 0.95];
         const blackColor = [0.1, 0.1, 0.1];
+        const grayColor = [0.6, 0.6, 0.6];
 
         // --- Geometry Generation ---
         const topHalfGeo = this.generateHemisphere(this.radius, 32, 32, false, redColor);
@@ -40,10 +44,23 @@ export class PokeballShell {
         const bandMatrix = LIBS.get_I4();
         this.staticParts.push(this.createBufferObject(bandGeo.vertices, bandGeo.indices, bandMatrix));
 
-        const buttonGeo = this.generateCylinder(buttonRadius, buttonRadius, this.bandHeight * 1.2, 24, 1, whiteColor);
-        const buttonMatrix = LIBS.get_I4();
-        LIBS.translateZ(buttonMatrix, this.radius);
-        this.staticParts.push(this.createBufferObject(buttonGeo.vertices, buttonGeo.indices, buttonMatrix));
+        // 🔘 BUTTON BASE (black)
+        const buttonBaseGeo = this.generateCylinder(buttonOuterRadius, buttonOuterRadius, buttonDepth, 24, 1, blackColor);
+        const buttonBaseMatrix = LIBS.get_I4();
+        LIBS.translateZ(buttonBaseMatrix, this.radius + 0.05); // sedikit keluar dari bola
+        this.staticParts.push(this.createBufferObject(buttonBaseGeo.vertices, buttonBaseGeo.indices, buttonBaseMatrix));
+
+        // 🔘 BUTTON TOP (white, menonjol)
+        const buttonTopGeo = this.generateCylinder(buttonInnerRadius, buttonInnerRadius, buttonDepth * 0.6, 24, 1, whiteColor);
+        const buttonTopMatrix = LIBS.get_I4();
+        LIBS.translateZ(buttonTopMatrix, this.radius + buttonDepth * 0.4);
+        this.staticParts.push(this.createBufferObject(buttonTopGeo.vertices, buttonTopGeo.indices, buttonTopMatrix));
+
+        // 🔘 BUTTON CENTER DOT (gray, kecil)
+        const buttonDotGeo = this.generateCylinder(buttonInnerRadius * 0.4, buttonInnerRadius * 0.4, buttonDepth * 0.4, 24, 1, grayColor);
+        const buttonDotMatrix = LIBS.get_I4();
+        LIBS.translateZ(buttonDotMatrix, this.radius + buttonDepth * 0.8);
+        this.staticParts.push(this.createBufferObject(buttonDotGeo.vertices, buttonDotGeo.indices, buttonDotMatrix));
     }
 
     createBufferObject(vertices, indices, localMatrix) {
@@ -73,29 +90,22 @@ export class PokeballShell {
         });
 
         this.GL.disable(this.GL.CULL_FACE);
+
         const pivotX = 0;
         const pivotY = this.bandHeight / 2;
         const pivotZ = this.radius; 
-        
-        // Matriks lokal saat tertutup
+
         const M_local_closed = this.topHalf.localMatrix;
 
-        // 1. Translasi ke pivot (ke pusat koordinat)
         let M_pivot_inv = LIBS.translate(-pivotX, -pivotY, -pivotZ);
-
-        // 2. Rotasi di sumbu X (Engsel sejajar sumbu Y, membuka di sumbu X)
         let M_rot = LIBS.get_I4();
-        // Menggunakan -openAngle agar membuka ke atas/belakang (sumbu Z negatif)
-        LIBS.rotateX(M_rot, -openAngle); 
-        
-        // 3. Translasi kembali dari pivot
+        LIBS.rotateX(M_rot, -openAngle);
         let M_pivot = LIBS.translate(pivotX, pivotY, pivotZ);
 
-        // Urutan operasi: M_pivot * M_rot * M_pivot_inv * M_local_closed
         let M_anim = LIBS.get_I4();
         M_anim = LIBS.multiply(M_pivot, M_rot);
         M_anim = LIBS.multiply(M_anim, M_pivot_inv);
-        M_anim = LIBS.multiply(M_anim, M_local_closed); // Gabungkan dengan translasi Y lokal awal
+        M_anim = LIBS.multiply(M_anim, M_local_closed);
 
         const M_final = LIBS.multiply(PARENT_MATRIX, M_anim);
         this.GL.uniformMatrix4fv(this._MMatrix, false, M_final);
