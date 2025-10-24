@@ -1,61 +1,43 @@
 export class ArmShape {
   GL = null;
   SHADER_PROGRAM = null;
-
   _position = null;
   _color = null;
   _MMatrix = null;
-
   OBJECT_VERTEX = null;
   OBJECT_FACES = null;
-
   vertices = [];
   faces = [];
-
   POSITION_MATRIX = LIBS.get_I4();
   MOVE_MATRIX = LIBS.get_I4();
-
   childs = [];
 
-  // --- BARU: Properti untuk state animasi ---
+  // state animasi
     animationState = "STANDING";
     animationProgress = 0.0;
     animationDuration = 1.5; // Samakan dengan durasi body
     animationStartTime = 0.0;
     isAnimating = false;
     needsToToggleState = false;
-
-    // --- BARU: Nilai target untuk pose tangan ---
     initialPosX = 2.0;  // Jarak dari tengah body
-    initialPosY = 1.5;  // Posisi bahu (di atas body)
-    
-    // Target Rotasi:
+    initialPosY = 1.5;  // Posisi bahu 
     standRotX = 0.0; // Tangan lurus ke bawah
-    
-    // Ini adalah KUNCINYA:
-    // Badan berotasi +90. Tangan harus berotasi +90 di bahu
-    // agar terjulur lurus ke depan.
-    crawlRotX = -Math.PI / 2;
-    
-  // side: +1 for right arm, -1 for left arm (mirror along X)
+    crawlRotX = -Math.PI / 2; // Tangan merangkak ke depan
+
+  // side: +1 (right arm), -1 (left arm) (mirror along X)
+  // CONSTRUCTOR ------------------------------------------------
   constructor(GL, SHADER_PROGRAM, _position, _color, _Mmatrix, side = 1) {
     this.GL = GL;
     this.SHADER_PROGRAM = SHADER_PROGRAM;
     this._position = _position;
     this._color = _color;
     this._MMatrix = _Mmatrix;
-
-    // Basic proportions
     var shoulderCenter = { x: 0.8 * side, y: 0.1, z: 0.15 };
     var upperLen = 2;
-    // Panjang telapak tangan
-    var foreLen = 0.4;
+    var foreLen = 0.4; 
     var handLen = 0.2;
     var armDirY = -1; // pointing downward
-
-    // Colors (match cream tone of head/body)
     var armColor = { r: 0.98, g: 0.94, b: 0.76 };
-    // var clawColor = { r: 0.98, g: 0.94, b: 0.76 };
 
     // 1) Shoulder ellipse
     this.addEllipsoid(0.55, 0.28, 0.55, 24, 32, shoulderCenter, armColor);
@@ -66,14 +48,9 @@ export class ArmShape {
       y: shoulderCenter.y + armDirY * (upperLen / 2),
       z: shoulderCenter.z,
     };
-    this.addEllipticalCylinder(
-      0.32,
-      0.28, // rxTop, rzTop
-      0.5,
-      0.54, // rxBottom, rzBottom
-      upperLen,
-      28,
-      1,
+    this.addEllipticalCylinder( // rxTop, rzTop, rxBottom, rzBottom, height, radialSegments, heightSegments, center, color
+      0.32, 0.28, 0.5,  0.54, 
+      upperLen, 28, 1,
       upperCenter,
       armColor
     );
@@ -92,19 +69,13 @@ export class ArmShape {
       y: elbowCenter.y + armDirY * (foreLen / 2),
       z: elbowCenter.z,
     };
-    this.addEllipticalCylinder(
-      0.25,
-      0.15, // rxTop, rzTop
-      0.24,
-      0.2, // rxBottom, rzBottom
-      foreLen,
-      28,
-      1,
-      foreCenter,
-      armColor
+    this.addEllipticalCylinder( // rxTop, rzTop, rxBottom, rzBottom, height, radialSegments, heightSegments, center, color
+      0.25, 0.15, 0.24, 0.2,
+      foreLen, 28, 1, 
+      foreCenter, armColor
     );
 
-    // 5a) Hand ellipse
+    // 5) Hand ellipse
     var handCenter = {
       x: foreCenter.x,
       y: foreCenter.y + armDirY * (handLen / 2),
@@ -112,12 +83,10 @@ export class ArmShape {
     };
     this.addEllipsoid(0.18, 0.1, 0.18, 28, 28, handCenter, armColor);
 
-    // 5) Fingers (3 claws, sedikit beda panjang + pipih)
+    // 5a) Fingers (bumps)
     var wristY = foreCenter.y + armDirY * (foreLen / 2);
     var spread = 0.1;
     var fingerBaseZ = foreCenter.z + 0.05;
-
-    // Bentuk jari lebih tumpul: lebih pendek, lebih lebar
     var fingerHeight = 0.18;
     var fingerRadius = 0.1;
 
@@ -129,7 +98,6 @@ export class ArmShape {
       armColor,
       armDirY
     );
-
     // Jari tengah
     this.addRoundedFinger(
       fingerRadius * 1.05,
@@ -138,7 +106,6 @@ export class ArmShape {
       armColor,
       armDirY
     );
-
     // Jari kanan
     this.addRoundedFinger(
       fingerRadius,
@@ -182,9 +149,57 @@ export class ArmShape {
     LIBS.rotateZ(this.POSITION_MATRIX, 0.7 * side);
   }
 
-  // === Geometry helpers ===
+  // SETUP --------------------------------------------------
+  setup() {
+    this.OBJECT_VERTEX = this.GL.createBuffer();
+    this.GL.bindBuffer(this.GL.ARRAY_BUFFER, this.OBJECT_VERTEX);
+    this.GL.bufferData(
+      this.GL.ARRAY_BUFFER,
+      new Float32Array(this.vertices),
+      this.GL.STATIC_DRAW
+    );
+    this.OBJECT_FACES = this.GL.createBuffer();
+    this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, this.OBJECT_FACES);
+    this.GL.bufferData(
+      this.GL.ELEMENT_ARRAY_BUFFER,
+      new Uint16Array(this.faces),
+      this.GL.STATIC_DRAW
+    );
+    this.childs.forEach((child) => child.setup());
+  }
 
-  addEllipsoid(rx, ry, rz, stacks, slices, center, color) {
+  // RENDER -------------------------------------------------
+  render(PARENT_MATRIX) {
+    this.MODEL_MATRIX = LIBS.multiply(this.MOVE_MATRIX, this.POSITION_MATRIX);
+    this.MODEL_MATRIX = LIBS.multiply(this.MODEL_MATRIX, PARENT_MATRIX);
+    this.GL.useProgram(this.SHADER_PROGRAM);
+    this.GL.uniformMatrix4fv(this._MMatrix, false, this.MODEL_MATRIX);
+    this.GL.bindBuffer(this.GL.ARRAY_BUFFER, this.OBJECT_VERTEX);
+    this.GL.vertexAttribPointer(this._position, 3, this.GL.FLOAT, false, 24, 0);
+    this.GL.vertexAttribPointer(this._color, 3, this.GL.FLOAT, false, 24, 12);
+    this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, this.OBJECT_FACES);
+    this.GL.drawElements(
+      this.GL.TRIANGLES,
+      this.faces.length,
+      this.GL.UNSIGNED_SHORT,
+      0
+    );
+    this.childs.forEach((child) => child.render(this.MODEL_MATRIX));
+  }
+
+  // FUNCTIONS ------------------------------------------------
+  
+  // Linear interpolation 
+  _lerp(a, b, t) {
+      return a + (b - a) * t;
+  }
+
+  toggleCrawlState() {
+      if (this.isAnimating) return;
+      this.needsToToggleState = true;
+  }
+
+  addEllipsoid(rx, ry, rz, stacks, slices, center, color) { // dipakai untuk bahu, siku, tangan
     var baseIndex = this.vertices.length / 6;
     for (var i = 0; i <= stacks; i++) {
       var u = (i / stacks) * Math.PI - Math.PI / 2;
@@ -207,10 +222,8 @@ export class ArmShape {
     }
   }
 
-  // New: elliptical cylinder
   addEllipticalCylinder(rxTop, rzTop, rxBottom, rzBottom, height, radialSegments,
-    heightSegments, center, color ) 
-    {
+    heightSegments, center, color ) { // dipakai untuk lengan atas & bawah
     var baseIndex = this.vertices.length / 6;
     for (var yIdx = 0; yIdx <= heightSegments; yIdx++) {
       var t = yIdx / heightSegments;
@@ -236,7 +249,7 @@ export class ArmShape {
     }
   }
 
-  addCone(radius, height, radialSegments, baseCenter, color, dirY = -1) {
+  addCone(radius, height, radialSegments, baseCenter, color, dirY = -1) { // dipakai untuk ujung jari
     var baseIndex = this.vertices.length / 6;
     var tipY = baseCenter.y + dirY * height;
 
@@ -264,28 +277,21 @@ export class ArmShape {
 
     LIBS.translateY(this.POSITION_MATRIX, -0.4);
   }
-
-  // Bentuk jari lebih tumpul dan menyatu dengan telapak tangan
-  addRoundedFinger(radius, height, baseCenter, color, dirY = -1) {
+  addRoundedFinger(radius, height, baseCenter, color, dirY = -1) { // dipakai untuk ujung jari
     var baseIndex = this.vertices.length / 6;
     var tipY = baseCenter.y + dirY * height;
-
     var radialSegments = 20;
-    var smoothFactor = 0.5; // transisi melengkung
+    var smoothFactor = 0.5; 
 
     for (var i = 0; i <= radialSegments; i++) {
       var theta = (i / radialSegments) * Math.PI * 2;
       var x = Math.cos(theta) * radius + baseCenter.x;
       var z = Math.sin(theta) * radius + baseCenter.z;
       this.vertices.push(x, baseCenter.y, z, color.r, color.g, color.b);
-
-      // Tambahkan lapisan melengkung ke atas agar ujungnya tumpul
       var x2 = Math.cos(theta) * (radius * smoothFactor) + baseCenter.x;
       var z2 = Math.sin(theta) * (radius * smoothFactor) + baseCenter.z;
       this.vertices.push(x2, tipY, z2, color.r, color.g, color.b);
     }
-
-    // Buat segitiga permukaan
     for (var i = 0; i < radialSegments; i++) {
       var a = baseIndex + i * 2;
       var b = baseIndex + i * 2 + 1;
@@ -295,64 +301,11 @@ export class ArmShape {
     }
   }
 
-  setup() {
-    this.OBJECT_VERTEX = this.GL.createBuffer();
-    this.GL.bindBuffer(this.GL.ARRAY_BUFFER, this.OBJECT_VERTEX);
-    this.GL.bufferData(
-      this.GL.ARRAY_BUFFER,
-      new Float32Array(this.vertices),
-      this.GL.STATIC_DRAW
-    );
-
-    this.OBJECT_FACES = this.GL.createBuffer();
-    this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, this.OBJECT_FACES);
-    this.GL.bufferData(
-      this.GL.ELEMENT_ARRAY_BUFFER,
-      new Uint16Array(this.faces),
-      this.GL.STATIC_DRAW
-    );
-
-    this.childs.forEach((child) => child.setup());
-  }
-
-  render(PARENT_MATRIX) {
-    this.MODEL_MATRIX = LIBS.multiply(this.MOVE_MATRIX, this.POSITION_MATRIX);
-    this.MODEL_MATRIX = LIBS.multiply(this.MODEL_MATRIX, PARENT_MATRIX);
-
-    this.GL.useProgram(this.SHADER_PROGRAM);
-    this.GL.uniformMatrix4fv(this._MMatrix, false, this.MODEL_MATRIX);
-
-    this.GL.bindBuffer(this.GL.ARRAY_BUFFER, this.OBJECT_VERTEX);
-    this.GL.vertexAttribPointer(this._position, 3, this.GL.FLOAT, false, 24, 0);
-    this.GL.vertexAttribPointer(this._color, 3, this.GL.FLOAT, false, 24, 12);
-
-    this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, this.OBJECT_FACES);
-    this.GL.drawElements(
-      this.GL.TRIANGLES,
-      this.faces.length,
-      this.GL.UNSIGNED_SHORT,
-      0
-    );
-
-    this.childs.forEach((child) => child.render(this.MODEL_MATRIX));
-  }
-  // --- Fungsi Animasi BARU ---
-    
-    _lerp(a, b, t) {
-        return a + (b - a) * t;
-    }
-
-    toggleCrawlState() {
-        if (this.isAnimating) return;
-        this.needsToToggleState = true;
-    }
-
   animate(time) {
         if (this.needsToToggleState) {
             this.isAnimating = true;
             this.animationStartTime = time;
             this.animationProgress = 0.0;
-            
             if (this.animationState === "STANDING") {
                 this.animationState = "TO_CRAWL";
             } else if (this.animationState === "CRAWLING") {
@@ -360,21 +313,17 @@ export class ArmShape {
             }
             this.needsToToggleState = false;
         }
-
         let crawlAmount = 0.0;
         if (this.isAnimating) {
             const elapsedTime = time - this.animationStartTime;
             this.animationProgress = Math.min(elapsedTime / this.animationDuration, 1.0);
-
             if (this.animationProgress >= 1.0) {
                 this.isAnimating = false;
                 if (this.animationState === "TO_CRAWL") this.animationState = "CRAWLING";
                 else if (this.animationState === "TO_STAND") this.animationState = "STANDING";
             }
-            
             if (this.animationState === "TO_CRAWL") crawlAmount = this.animationProgress;
             else if (this.animationState === "TO_STAND") crawlAmount = 1.0 - this.animationProgress;
-            
         } else {
             if (this.animationState === "CRAWLING") crawlAmount = 1.0;
             else crawlAmount = 0.0;
@@ -383,12 +332,9 @@ export class ArmShape {
         // Interpolasi
         const t = crawlAmount * crawlAmount * (3 - 2 * crawlAmount);
         const currentRotationX = this._lerp(this.standRotX, this.crawlRotX, t);
-
-        // Terapkan ke MOVE_MATRIX
+        
         LIBS.set_I4(this.MOVE_MATRIX);
         LIBS.rotateX(this.MOVE_MATRIX, currentRotationX);
-        
-        // Panggil animate pada child-nya (jika ada)
         this.childs.forEach(child => {
             if (child.animate) {
                 child.animate(time);

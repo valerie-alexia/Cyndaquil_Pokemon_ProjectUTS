@@ -4,37 +4,29 @@ export class BodyShape {
     _position = null;
     _color = null;
     _MMatrix = null;
-    OBJECTS = []; // { vertices, indices, localMatrix, vertexBuffer, indexBuffer }
+    OBJECTS = [];
     FLAME_OBJECTS = [];
-    
     POSITION_MATRIX = LIBS.get_I4();
     MOVE_MATRIX = LIBS.get_I4();
     childs = [];
 
-    // --- BARU: Properti untuk state animasi ---
+    // State animasi
     animationState = "STANDING"; // "STANDING", "TO_CRAWL", "CRAWLING", "TO_STAND"
-    animationProgress = 0.0;     // 0.0 sampai 1.0
-    animationDuration = 1.5;     // Durasi transisi dalam detik
+    animationProgress = 0.0;     // 0.0 sampai 1.0 
+    animationDuration = 1.5;     
     animationStartTime = 0.0;
     isAnimating = false;
     needsToToggleState = false;
-
-    // --- BARU: Nilai target untuk pose ---
     standRotX = 0.0;
     standPosY = 0.0;
     standPosZ = 0.0;
-    crawlRotX = Math.PI / 2.5; // 90 derajat
-    crawlPosY = -3;        // Turunkan badan saat merangkak
+    crawlRotX = Math.PI / 2.5; 
+    crawlPosY = -3;        
     crawlPosZ = 4.5;
-
-    // --- BARU: Properti untuk warna api ---
-    standOuterColor = [1.0, 0.6, 0.1]; // Oranye
-    crawlOuterColor = [1.0, 0.3, 0.0]; // Merah-oranye (G 0.6->0.3, B 0.1->0.0)
-
+    standOuterColor = [1.0, 0.6, 0.1]; // Orange
+    crawlOuterColor = [1.0, 0.3, 0.0]; // Merah
     standInnerColor = [1.0, 0.9, 0.2]; // Kuning
     crawlInnerColor = [1.0, 0.6, 0.1]; // Orange
-    
-    // --- BARU: Array sementara untuk update buffer ---
     _tempFlameVertices = [];
 
     constructor(GL, SHADER_PROGRAM, _position, _color, _MMatrix) {
@@ -44,25 +36,24 @@ export class BodyShape {
         this._color = _color;
         this._MMatrix = _MMatrix;
 
+        // Body Main Object
         const generated = this.generateHyper1d(1, 4, 1, 200, 200, 0.14);
         this.addObject(generated.vertices, generated.faces, LIBS.get_I4());
-
             var minY = Infinity;
         for (var vi = 1; vi < generated.vertices.length; vi += 6) {
         if (generated.vertices[vi] < minY) minY = generated.vertices[vi];
         }
 
+        // Body bagian bawah (sphere)
         var sphereL = this.generateSphere(1.4, 1.2, 1.5, 24, 20);
         var sphereR = this.generateSphere(1.4, 1.2, 1.5, 24, 20);
-        var yOffset = minY - 0.2;
-        
+        var yOffset = minY - 0.5; 
         const sphereLMatrix = this.createTransformMatrixLIBS({
         translation: [-0.1, yOffset, 0],
         rotation: [0, 0, 0],
         scale: [1, 1, 1],
         });
         this.addObject(sphereL.vertices, sphereL.faces, sphereLMatrix);
-
         const sphereRMatrix = this.createTransformMatrixLIBS({
         translation: [0.1, yOffset, 0],
         rotation: [0, 0, 0],
@@ -70,28 +61,21 @@ export class BodyShape {
         });
         this.addObject(sphereR.vertices, sphereR.faces, sphereRMatrix);
 
-        // Body Flames
-        const flameOuterColor = [1.0, 0.6, 0.1]; // Orange
-        const flameInnerColor = [1.0, 0.9, 0.2]; // Yellow
-        // const triangleGeoOuter = this.createTriangle(flameOuterColor);
-        // const triangleGeoInner = this.createTriangle(flameInnerColor);
+        // BODY FLAMES ------------------------------------------------
         const triangleGeo = this.createTrianglePositions();
         const baseRotationY = 0.0;
         const rotationFlip = Math.PI; 
-
+        const baseRotationX = -0.7;
         const flameSpikes = [
-            // ... (definisi flameSpikes Anda tidak berubah) ...
-            { t: [0.0, -2.3, -2], r: [-0.7, baseRotationY, rotationFlip], s: [1, 2, 1] },
-            { t: [1.5, -2.6, -1.7], r: [-0.7, baseRotationY, -0.6 + rotationFlip], s: [1, 1.5, 1] },
-            { t: [-1.5, -2.6, -1.7], r: [-0.7, baseRotationY, 0.6 + rotationFlip], s: [1, 1.5, 1] },
-            { t: [2, -3.3, -1], r: [-0.7, baseRotationY, -0.8 + rotationFlip], s: [0.4, 1.2, 1] },
-            { t: [-2, -3.3, -1], r: [-0.7, baseRotationY, 0.8 + rotationFlip], s: [0.4, 1.2, 1] },
-            { t: [0.7, -2.3, -2], r: [-0.7, baseRotationY, -0.3 + rotationFlip], s: [0.3, 1, 1] }, 
-            { t: [-0.7, -2.3, -2], r: [-0.7, baseRotationY, 0.3 + rotationFlip], s: [0.3, 1, 1] }
+            { t: [0.0, -2.3, -2], r: [baseRotationX, baseRotationY, rotationFlip], s: [1, 2, 1] },
+            { t: [1.5, -2.6, -1.7], r: [baseRotationX, baseRotationY, -0.6 + rotationFlip], s: [1, 1.5, 1] },
+            { t: [-1.5, -2.6, -1.7], r: [baseRotationX, baseRotationY, 0.6 + rotationFlip], s: [1, 1.5, 1] },
+            { t: [2, -3.3, -1], r: [baseRotationX, baseRotationY, -0.8 + rotationFlip], s: [0.4, 1.2, 1] },
+            { t: [-2, -3.3, -1], r: [baseRotationX, baseRotationY, 0.8 + rotationFlip], s: [0.4, 1.2, 1] },
+            { t: [0.7, -2.3, -2], r: [baseRotationX, baseRotationY, -0.3 + rotationFlip], s: [0.3, 1, 1] }, 
+            { t: [-0.7, -2.3, -2], r: [baseRotationX, baseRotationY, 0.3 + rotationFlip], s: [0.3, 1, 1] }
         ];
-
         flameSpikes.forEach((spike) => {
-            // ... (logika pembuatan flame Anda tidak berubah) ...
             const outerTranslation = [spike.t[0], spike.t[1], spike.t[2] - 0.01];
             const outerRotation = spike.r;
             const outerScale = spike.s;
@@ -135,17 +119,11 @@ export class BodyShape {
                 baseScale: innerLeftScale
             });
         });
-
         this.MOVE_MATRIX = LIBS.get_I4();
     }
 
-    addObject(vertices, indices, localMatrix = null) {
-        if (localMatrix === null) localMatrix = LIBS.get_I4();
-        this.OBJECTS.push({ vertices, indices, localMatrix });
-    }
-
+    // SETUP ------------------------------------------------
     setup() {
-        // ... (Fungsi setup() Anda tidak berubah) ...
         this.OBJECTS.forEach((obj) => {
             obj.vertexBuffer = this.GL.createBuffer();
             this.GL.bindBuffer(this.GL.ARRAY_BUFFER, obj.vertexBuffer);
@@ -163,57 +141,39 @@ export class BodyShape {
                 this.GL.STATIC_DRAW
             );
         });
-
         this.FLAME_OBJECTS.forEach((obj) => {
-          obj.vertexBuffer = this.GL.createBuffer();
-          this.GL.bindBuffer(this.GL.ARRAY_BUFFER, obj.vertexBuffer);
-
-          // --- MODIFIKASI: Buffer awal diisi dengan data dummy / warna awal ---
-          const initialColor = (obj.colorType === 'outer') ? this.standOuterColor : this.standInnerColor;
-          const initialVertices = [];
-          for (let i = 0; i < obj.positions.length; i += 3) {
-              initialVertices.push(obj.positions[i], obj.positions[i+1], obj.positions[i+2]);
-              initialVertices.push(...initialColor);
-          }
-
-          this.GL.bufferData(
-            this.GL.ARRAY_BUFFER,
-            new Float32Array(initialVertices),
-            this.GL.DYNAMIC_DRAW // <-- MODIFIKASI PENTING: Untuk update nanti
-          );
-
-          obj.indexBuffer = this.GL.createBuffer();
-          this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, obj.indexBuffer);
-          this.GL.bufferData(
-            this.GL.ELEMENT_ARRAY_BUFFER,
-            new Uint16Array(obj.indices),
-            this.GL.STATIC_DRAW
-          );
-        });
-        this.childs.forEach((child) => child.setup());
+            obj.vertexBuffer = this.GL.createBuffer();
+            this.GL.bindBuffer(this.GL.ARRAY_BUFFER, obj.vertexBuffer);
+            const initialColor = (obj.colorType === 'outer') ? this.standOuterColor : this.standInnerColor;
+            const initialVertices = [];
+            for (let i = 0; i < obj.positions.length; i += 3) {
+                initialVertices.push(obj.positions[i], obj.positions[i+1], obj.positions[i+2]);
+                initialVertices.push(...initialColor);
+            }
+            
+            this.GL.bufferData(
+                this.GL.ARRAY_BUFFER,
+                new Float32Array(initialVertices),
+                this.GL.DYNAMIC_DRAW
+            );
+            obj.indexBuffer = this.GL.createBuffer();
+            this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, obj.indexBuffer);
+            this.GL.bufferData(this.GL.ELEMENT_ARRAY_BUFFER, new Uint16Array(obj.indices), this.GL.STATIC_DRAW);
+        });
+        this.childs.forEach((child) => child.setup());
     }
 
-   // Di dalam class BodyShape (body.js)
-
+    // RENDER ------------------------------------------------
     render(PARENT_MATRIX) {
-        // --- PERCOBAAN: Balik Urutan Perkalian ---
-        // Urutan: (Position * Move) * Parent
         const LOCAL_BODY_TRANSFORM = LIBS.multiply(this.POSITION_MATRIX, this.MOVE_MATRIX);
-        const MODEL_MATRIX = LIBS.multiply(LOCAL_BODY_TRANSFORM, PARENT_MATRIX); // <-- URUTAN DIBALIK
-        // --- Akhir Percobaan ---
-
-        // Render OBJECTS (bagian badan utama)
+        const MODEL_MATRIX = LIBS.multiply(LOCAL_BODY_TRANSFORM, PARENT_MATRIX);
         this.OBJECTS.forEach((obj) => {
             let M = MODEL_MATRIX;
             if (obj.localMatrix) {
-                 // Urutan: PartLocal * BodyModel (konsisten dengan di atas)
-                 M = LIBS.multiply(obj.localMatrix, MODEL_MATRIX); // <-- URUTAN DIBALIK
+                 M = LIBS.multiply(obj.localMatrix, MODEL_MATRIX);
             }
-
             this.GL.useProgram(this.SHADER_PROGRAM);
             this.GL.uniformMatrix4fv(this._MMatrix, false, M);
-
-            // ... (kode bindBuffer, vertexAttribPointer, drawElements tetap sama) ...
             this.GL.bindBuffer(this.GL.ARRAY_BUFFER, obj.vertexBuffer);
             this.GL.vertexAttribPointer(this._position, 3, this.GL.FLOAT, false, 24, 0);
             this.GL.vertexAttribPointer(this._color, 3, this.GL.FLOAT, false, 24, 12);
@@ -225,17 +185,12 @@ export class BodyShape {
                 0
             );
         });
-
-        // Render FLAME_OBJECTS
+        
         this.FLAME_OBJECTS.forEach((obj) => {
-            // Urutan: FlameLocal * BodyModel (konsisten dengan di atas)
-            let M = LIBS.multiply(obj.localMatrix, MODEL_MATRIX); // <-- URUTAN DIBALIK
-
+            let M = LIBS.multiply(obj.localMatrix, MODEL_MATRIX);
             this.GL.useProgram(this.SHADER_PROGRAM);
             this.GL.uniformMatrix4fv(this._MMatrix, false, M);
-
-            // ... (kode bindBuffer, vertexAttribPointer, drawElements tetap sama) ...
-             this.GL.bindBuffer(this.GL.ARRAY_BUFFER, obj.vertexBuffer);
+            this.GL.bindBuffer(this.GL.ARRAY_BUFFER, obj.vertexBuffer);
             this.GL.vertexAttribPointer(this._position, 3, this.GL.FLOAT, false, 24, 0);
             this.GL.vertexAttribPointer(this._color, 3, this.GL.FLOAT, false, 24, 12);
             this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, obj.indexBuffer);
@@ -246,59 +201,32 @@ export class BodyShape {
                 0
             );
         });
-
-        // Render children (head, arms)
-        // Kirim MODEL_MATRIX badan sebagai parent
         this.childs.forEach((child) => child.render(MODEL_MATRIX));
-    } // Akhir fungsi render
+    } 
 
-    // --- BARU: Fungsi helper untuk interpolasi ---
-    _lerp(a, b, t) {
-        return a + (b - a) * t;
-    }
-
-    _lerpColor(colorA, colorB, t) {
-        const r = this._lerp(colorA[0], colorB[0], t);
-        const g = this._lerp(colorA[1], colorB[1], t);
-        const b = this._lerp(colorA[2], colorB[2], t);
-        return [r, g, b];
-    }
-
-    // --- BARU: Fungsi untuk memicu transisi ---
-    // Panggil ini dari main.js (misalnya, saat tombol ditekan)
-    // 'currentTime' harus didapat dari main loop Anda (misal: Date.now() / 1000.0)
-    toggleCrawlState(currentTime) {
-        if (this.isAnimating) return; // Jangan interrupt animasi yang sedang berjalan
-        this.needsToToggleState = true;
-    }
-
-    // --- MODIFIKASI: Fungsi animate() ---
+    // ANIMATION ------------------------------------------------
     animate(time) {
-        // --- 0. BARU: Cek bendera transisi ---
+        // 0. Cek bendera transisi ---
         if (this.needsToToggleState) {
             this.isAnimating = true;
             this.animationStartTime = time; 
             this.animationProgress = 0.0;
-            
             if (this.animationState === "STANDING") {
                 this.animationState = "TO_CRAWL";
             } else if (this.animationState === "CRAWLING") {
                 this.animationState = "TO_STAND";
             }
-            
             this.needsToToggleState = false; 
         }
         
-        // --- 1. Animasi Api  ---
+        // 1. Animasi Api  ---
         const flickerSpeed = 6.0;  // Kecepatan kedipan
         const flickerAmount = 0.2; // Intensitas kedipan
-
         this.FLAME_OBJECTS.forEach((obj, i) => {
             // Nilai 0 sampai 1
             const actualFlicker = 0.5 + 0.5 * Math.sin(time * flickerSpeed + i * 0.5);
             const animatedScaleY = obj.baseScale[1] * (1.0 + actualFlicker * flickerAmount); 
             const animatedScale = [obj.baseScale[0], animatedScaleY, obj.baseScale[2]];
-
             obj.localMatrix = this.createTransformMatrixLIBS({
                 translation: obj.baseTranslation,
                 rotation: obj.baseRotation,
@@ -306,21 +234,18 @@ export class BodyShape {
             });    
         });
 
-        // --- 2. Animasi Bernapas  ---
+        // 2. Animasi Bernapas  ---
         const breathSpeed = 3; 
         const moveAmount = 0.05;
         const breathFactor = Math.sin(time * breathSpeed); 
         const moveY_breath = breathFactor * moveAmount;
 
-        // --- 3. Animasi Transisi Berdiri/Merangkak ---
+        // 3. Animasi Transisi Berdiri/Merangkak ---
         let crawlAmount = 0.0; // 0.0 = berdiri, 1.0 = merangkak
-
         if (this.isAnimating) {
             const elapsedTime = time - this.animationStartTime;
             this.animationProgress = Math.min(elapsedTime / this.animationDuration, 1.0);
-
-            if (this.animationProgress >= 1.0) {
-                // Transisi selesai
+            if (this.animationProgress >= 1.0) { // transisi selesai
                 this.isAnimating = false;
                 if (this.animationState === "TO_CRAWL") {
                     this.animationState = "CRAWLING";
@@ -329,16 +254,14 @@ export class BodyShape {
                     this.animationState = "STANDING";
                     crawlAmount = 0.0;
                 }
-            } else {
-                // Sedang dalam transisi
+            } else { // Sedang dalam transisi
                 if (this.animationState === "TO_CRAWL") {
                     crawlAmount = this.animationProgress; // 0 -> 1
                 } else if (this.animationState === "TO_STAND") {
                     crawlAmount = 1.0 - this.animationProgress; // 1 -> 0
                 }
             }
-        } else {
-            // Tidak sedang animasi, tahan pose saat ini
+        } else { // Tidak sedang animasi, tahan pose saat ini
             if (this.animationState === "CRAWLING") {
                 crawlAmount = 1.0;
             } else { // STANDING
@@ -346,74 +269,71 @@ export class BodyShape {
             }
         }
 
-        // --- 4. Hitung Nilai Interpolasi ---
-        // Gunakan smoothstep untuk transisi yang lebih halus (ease-in/ease-out)
+        // 4. Hitung Nilai Interpolasi ---
         const t = crawlAmount * crawlAmount * (3 - 2 * crawlAmount);
-        
         const currentRotationX = this._lerp(this.standRotX, this.crawlRotX, t);
         const currentPositionY = this._lerp(this.standPosY, this.crawlPosY, t);
         const currentPositionZ = this._lerp(this.standPosZ, this.crawlPosZ, t);
 
-        // --- 1. MODIFIKASI: Animasi Api ---
-        
-        // Definisikan kecepatan untuk kedua state
+        // 1. MODIFIKASI: Animasi Api ---
         const standFlickerSpeed = 6.0;  // Kecepatan normal
         const crawlFlickerSpeed = 20.0; // Kecepatan tinggi
-        
-        // Definisikan intensitas untuk kedua state
-        const standFlickerAmount = 0.2; // Intensitas normal
-        const crawlFlickerAmount = 0.5; // Intensitas lebih besar (coba 0.5 atau 0.6)
-
-        // Interpolasi kecepatan DAN intensitas api berdasarkan crawlAmount (0.0 -> 1.0)
+        const standFlickerAmount = 0.2; // Intensitas normal
+        const crawlFlickerAmount = 0.5; // Intensitas lebih besar 
         const currentFlickerSpeed = this._lerp(standFlickerSpeed, crawlFlickerSpeed, crawlAmount);
-        const currentFlickerAmount = this._lerp(standFlickerAmount, crawlFlickerAmount, crawlAmount); // <-- BARU
-
-        // --- BARU: Interpolasi Warna Api ---
+        const currentFlickerAmount = this._lerp(standFlickerAmount, crawlFlickerAmount, crawlAmount); 
         const currentOuterColor = this._lerpColor(this.standOuterColor, this.crawlOuterColor, crawlAmount);
         const currentInnerColor = this._lerpColor(this.standInnerColor, this.crawlInnerColor, crawlAmount);
         
-        this.FLAME_OBJECTS.forEach((obj, i) => {
-            // --- A. Update Animasi Flicker (Skala) ---
+        this.FLAME_OBJECTS.forEach((obj, i) => {
+            // A. Update Animasi Flicker (Skala) ---
             const actualFlicker = 0.5 + 0.5 * Math.sin(time * currentFlickerSpeed + i * 0.5); 
-            const animatedScaleY = obj.baseScale[1] * (1.0 + actualFlicker * currentFlickerAmount); 
-            const animatedScale = [obj.baseScale[0], animatedScaleY, obj.baseScale[2]];
+            const animatedScaleY = obj.baseScale[1] * (1.0 + actualFlicker * currentFlickerAmount); 
+            const animatedScale = [obj.baseScale[0], animatedScaleY, obj.baseScale[2]];
+            obj.localMatrix = this.createTransformMatrixLIBS({
+                translation: obj.baseTranslation,
+                rotation: obj.baseRotation,
+                scale: animatedScale,
+                }); 
 
-            obj.localMatrix = this.createTransformMatrixLIBS({
-                translation: obj.baseTranslation,
-                rotation: obj.baseRotation,
-                scale: animatedScale,  
-            }); 
-
-            // --- B. Update Warna Api (Vertex Buffer) ---
+            // B. Update Warna Api ---
             this._tempFlameVertices.length = 0; // Kosongkan array
             const colorToUse = (obj.colorType === 'outer') ? currentOuterColor : currentInnerColor;
-            
             for (let v = 0; v < obj.positions.length; v += 3) {
                 this._tempFlameVertices.push(obj.positions[v], obj.positions[v+1], obj.positions[v+2]);
                 this._tempFlameVertices.push(...colorToUse);
             }
-
-            // Update vertex buffer di GPU
             this.GL.bindBuffer(this.GL.ARRAY_BUFFER, obj.vertexBuffer);
             this.GL.bufferSubData(this.GL.ARRAY_BUFFER, 0, new Float32Array(this._tempFlameVertices));
         });
 
-        // --- 5. Terapkan SEMUA Transformasi ke MOVE_MATRIX ---
-        LIBS.set_I4(this.MOVE_MATRIX);
-        
-        // Terapkan pernapasan (translasi Y lokal)
-        LIBS.translateY(this.MOVE_MATRIX, moveY_breath);
-        
-        // Terapkan pose merangkak (turunkan badan)
-        LIBS.translateY(this.MOVE_MATRIX, currentPositionY);
-
-        // Terapkan pose merangkak (MAJUKAN BADAN)
-        LIBS.translateZ(this.MOVE_MATRIX, currentPositionZ);
-
-        // Terapkan pose merangkak (rotasi badan)
-        LIBS.rotateX(this.MOVE_MATRIX, currentRotationX);
+        // --- 5. SEMUA Transformasi ke MOVE_MATRIX ---
+        LIBS.set_I4(this.MOVE_MATRIX); 
+        LIBS.translateY(this.MOVE_MATRIX, moveY_breath); // bernapas y
+        LIBS.translateY(this.MOVE_MATRIX, currentPositionY); // turun badan
+        LIBS.translateZ(this.MOVE_MATRIX, currentPositionZ); // majuk badan
+        LIBS.rotateX(this.MOVE_MATRIX, currentRotationX); // rotasi badan
     }
 
+    // FUNCTIONS ------------------------------------------------
+    // interpolasi linear
+    _lerp(a, b, t) {
+        return a + (b - a) * t;
+    }
+    _lerpColor(colorA, colorB, t) {
+        const r = this._lerp(colorA[0], colorB[0], t);
+        const g = this._lerp(colorA[1], colorB[1], t);
+        const b = this._lerp(colorA[2], colorB[2], t);
+        return [r, g, b];
+    }
+    toggleCrawlState() {
+        if (this.isAnimating) return; 
+        this.needsToToggleState = true;
+    }
+    addObject(vertices, indices, localMatrix = null) {
+        if (localMatrix === null) localMatrix = LIBS.get_I4();
+        this.OBJECTS.push({ vertices, indices, localMatrix });
+    }
     createTransformMatrixLIBS({ translation, rotation, scale }) {
         // ... (Fungsi createTransformMatrixLIBS() Anda tidak berubah) ...
         const matrix = LIBS.get_I4();
@@ -428,9 +348,8 @@ export class BodyShape {
         LIBS.translateZ(matrix, translation[2]);
         return matrix;
     }
-
-    generateSphere(a, b, c, stack, step) {
-        // ... (Fungsi generateSphere() Anda tidak berubah) ...
+    
+    generateSphere(a, b, c, stack, step) { // dipakai untuk badan bawah
         var vertices = [];
         var faces = [];
         for (var i = 0; i <= stack; i++) {
@@ -442,7 +361,7 @@ export class BodyShape {
                 var z = c * Math.sin(v) * Math.cos(u);
                 let r, g, bcol;
                 if (z >= 0) {
-                    r = 0.98 + y * 0.002;
+                    r = 1 + y * 0.002;
                     g = 0.94 + y * 0.002;
                     bcol = 0.76 + y * 0.002; // cream
                 } else {
@@ -465,8 +384,7 @@ export class BodyShape {
         return { vertices, faces };
     }
 
-    generateHyper1d(a, b, c, stack, step, uBottomTrimRatio = 0) {
-        // ... (Fungsi generateHyper1d() Anda tidak berubah) ...
+    generateHyper1d(a, b, c, stack, step, uBottomTrimRatio = 0) { // dipakai untuk badan utama
         var vertices = [];
         var faces = [];
         var margin = 0.4;
@@ -513,24 +431,12 @@ export class BodyShape {
         return { vertices, faces };
     }
 
-    createTriangle(color) {
-        // ... (Fungsi createTriangle() Anda tidak berubah) ...
-        const v = [
-            -1.0, 1.0, 0.0,
-            ...color,
-            1.0, 1.0, 0.0,
-            ...color,
-            0.0, -1.0, 0.0,
-            ...color,
-        ];
-        return { vertices: v, indices: [0, 1, 2] };
-    }
-    createTrianglePositions() {
+    createTrianglePositions() { // dipakai untuk body flames
         const v = [
             // x,   y,   z
-            -1.0, 1.0, 0.0, // Top-left
-             1.0, 1.0, 0.0, // Top-right
-             0.0, -1.0, 0.0 // Bottom-center
+            -1.0, 1.0, 0.0, 
+             1.0, 1.0, 0.0, 
+             0.0, -1.0, 0.0 
         ];
         return { positions: v, indices: [0, 1, 2] };
     }

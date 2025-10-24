@@ -34,7 +34,6 @@ var LIBS = {
         var result = [0, 0, 0, 0];
         var x = vec[0], y = vec[1], z = vec[2], w = vec[3];
 
-        // This is column-major multiplication, which is standard for WebGL
         result[0] = mat[0] * x + mat[4] * y + mat[8] * z + mat[12] * w;
         result[1] = mat[1] * x + mat[5] * y + mat[9] * z + mat[13] * w;
         result[2] = mat[2] * x + mat[6] * y + mat[10] * z + mat[14] * w;
