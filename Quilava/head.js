@@ -20,10 +20,10 @@ export class HeadShape {
     initialPosY = 4.0; 
     standRotX = 0.0;
     crawlRotX = -Math.PI / 2;
-    standPosY = 0.0;  // Posisi Y saat berdiri (tidak bergeser)
-    crawlPosY = 1; // Posisi Y saat merangkak (turun 1 unit)
-    standPosZ = 0.0;  // Posisi Z saat berdiri (tidak bergeser)
-    crawlPosZ = 1;  // Posisi Z saat merangkak (maju 0.2 unit)
+    standPosY = 0.0;
+    crawlPosY = 1;
+    standPosZ = 0.0;
+    crawlPosZ = 1;  
     standOuterColor = [1.0, 0.6, 0.1]; // Orange
     crawlOuterColor = [1.0, 0.3, 0.0]; // Merah
     standInnerColor = [1.0, 0.9, 0.2]; // Kuning
@@ -146,9 +146,9 @@ export class HeadShape {
     this.addObject(highlightGeo.vertices, highlightGeo.indices, rightHighlightMatrix); 
 
     // HEAD FLAMES -------------------------------------------------------------------
-    const baseRotationY = 1.5; // Rotasi Y dasar kepala
+    const baseRotationY = 1.5;
     const triangleGeo = this.createTrianglePositions();
-    const rotationFlip = Math.PI; // 180 derajat untuk membalik segitiga
+    const rotationFlip = Math.PI;
     const flameSpikes = [
       // Paku 1: Paling depan, deket muka, paling keclil
       { t: [0.0, 0.75, 0.7], r: [0.15, baseRotationY, 0.1 + rotationFlip], s: [0.1, 0.3, 1] },
@@ -175,7 +175,7 @@ export class HeadShape {
       const outerRotation = spike.r;
       this.FLAME_OBJECTS.push({
         positions: triangleGeo.positions, 
-        indices: triangleGeo.indices,
+        indices: triangleGeo.indices,
         colorType: 'outer',
         localMatrix: this.createTransformMatrixLIBS({
           translation: outerTranslation,
@@ -193,7 +193,7 @@ export class HeadShape {
       const innerRightRotation = spike.r;
       this.FLAME_OBJECTS.push({
         positions: triangleGeo.positions, 
-        indices: triangleGeo.indices,
+        indices: triangleGeo.indices,
         colorType: 'inner',
         localMatrix: this.createTransformMatrixLIBS({
           translation: innerRightTranslation,
@@ -214,8 +214,8 @@ export class HeadShape {
       const innerLeftScale = [spike.s[0] * 0.7, spike.s[1] * 0.7, spike.s[2]];
       const innerLeftRotation = spike.r;
       this.FLAME_OBJECTS.push({
-        positions: triangleGeo.positions, 
-        indices: triangleGeo.indices,
+        positions: triangleGeo.positions,
+        indices: triangleGeo.indices,
         colorType: 'inner',
         localMatrix: this.createTransformMatrixLIBS({
           translation: innerLeftTranslation,
@@ -287,12 +287,10 @@ export class HeadShape {
     // RENDER -----------------------------------------------------------------------
   render(PARENT_MATRIX) {
     const LOCAL_BODY_TRANSFORM = LIBS.multiply(this.POSITION_MATRIX, this.MOVE_MATRIX);
-    const MODEL_MATRIX = LIBS.multiply(
-        LOCAL_BODY_TRANSFORM, // 1. Matriks Local dulu
-        PARENT_MATRIX // 2. Baru Parent
+    const MODEL_MATRIX = LIBS.multiply(
+        LOCAL_BODY_TRANSFORM,
+        PARENT_MATRIX 
     );
-    // mat4.multiply(MODEL_MATRIX, this.POSITION_MATRIX, this.MOVE_MATRIX);
-    // mat4.multiply(MODEL_MATRIX, PARENT_MATRIX, MODEL_MATRIX);
     this.OBJECTS.forEach((obj) => {
       let M = MODEL_MATRIX;
       if (obj.localMatrix) M = LIBS.multiply(obj.localMatrix, MODEL_MATRIX);
@@ -326,7 +324,6 @@ export class HeadShape {
   }
 
   // FUNCTIONS -----------------------------------------------------------------------
- 
   // ANIMATION HELPERS, Linear Interpolation
     _lerp(a, b, t) { 
       return a + (b - a) * t;
