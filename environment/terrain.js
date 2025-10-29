@@ -1,9 +1,9 @@
 // environment/terrain.js
-import {LIBS} from "./libs.js"; // Adjust path if needed
+import {LIBS} from "./libs.js";
 
 export class Terrain {
     GL = null; SHADER_PROGRAM = null; _position = null; _color = null; _MMatrix = null;
-    OBJECTS = []; // Holds ground, water etc.
+    OBJECTS = []; 
     groundLevel = 0;
 
     constructor(GL, SHADER_PROGRAM, _position, _color, _MMatrix, radius) {
@@ -13,31 +13,21 @@ export class Terrain {
         this._color = _color;
         this._MMatrix = _MMatrix;
 
-        this.groundLevel = 0; // Ground level will be at Y=0 inside the ball
+        this.groundLevel = 0; 
 
         // --- Colors ---
         const grassColor = [0.2, 0.6, 0.2];
-        const waterColor = [0.3, 0.5, 0.9];
 
         // --- Geometry ---
         // 1. Ground Circle (Grass)
-        const groundRadius = radius * 0.95; // Slightly smaller than ball radius
+        const groundRadius = radius * 0.95; 
         const groundGeo = this.generateCircle(groundRadius, 64, grassColor);
         const groundMatrix = LIBS.get_I4();
-        LIBS.translateY(groundMatrix, this.groundLevel); // Place at Y=0
-        LIBS.rotateX(groundMatrix, -Math.PI / 2); // Rotate to lie flat on XZ plane
-
-        // 2. (Optional) Pond Circle
-        const pondRadius = groundRadius * 0.3;
-        const pondGeo = this.generateCircle(pondRadius, 32, waterColor);
-        const pondMatrix = LIBS.get_I4();
-        LIBS.translateY(pondMatrix, this.groundLevel - 0.1); // Slightly lower than ground
-        LIBS.translateZ(pondMatrix, groundRadius * 0.4);   // Position it somewhere
-        LIBS.rotateX(pondMatrix, -Math.PI / 2); // Rotate to lie flat
+        LIBS.translateY(groundMatrix, this.groundLevel);
+        LIBS.rotateX(groundMatrix, -Math.PI / 2); 
 
         // --- Add Objects ---
         this.addObject(groundGeo.vertices, groundGeo.indices, groundMatrix);
-        this.addObject(pondGeo.vertices, pondGeo.indices, pondMatrix);
     }
 
     addObject(vertices, indices, localMatrix) {
@@ -58,7 +48,6 @@ export class Terrain {
 
     render(PARENT_MATRIX) {
         this.OBJECTS.forEach(obj => {
-            // Order: Parent * Local
             const M = LIBS.multiply(PARENT_MATRIX, obj.localMatrix);
             this.GL.uniformMatrix4fv(this._MMatrix, false, M);
 
@@ -76,18 +65,16 @@ export class Terrain {
         const vertices = [];
         const indices = [];
         // Center vertex
-        vertices.push(0, 0, 0, ...color); // Z is 0 because we rotate later
+        vertices.push(0, 0, 0, ...color); 
 
         // Outer vertices
         for (let i = 0; i <= segments; i++) {
             const angle = (i / segments) * Math.PI * 2;
             const x = radius * Math.cos(angle);
-            const y = radius * Math.sin(angle); // Generate on XY plane first
+            const y = radius * Math.sin(angle); 
             vertices.push(x, y, 0, ...color);
-             // TODO: Add UVs: (x / radius * 0.5 + 0.5), (y / radius * 0.5 + 0.5)
         }
 
-        // Indices (fan triangulation)
         for (let i = 1; i <= segments; i++) {
             indices.push(0, i, i + 1);
         }

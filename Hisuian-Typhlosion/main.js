@@ -366,7 +366,6 @@ function main() {
             }
         }
 
-        // Terapkan animasi lompat ke TANGAN (jika ada)
         // LIBS.set_I4(rightArm.MOVE_MATRIX); // Reset
         // LIBS.set_I4(leftArm.MOVE_MATRIX);  // Reset
         if (isJumping) {
@@ -374,7 +373,6 @@ function main() {
             LIBS.rotateX(leftArm.MOVE_MATRIX, armSwingAngle);
         }
 
-        // Terapkan animasi lompat ke KAKI (jika ada)
         // LIBS.set_I4(rightLeg.MOVE_MATRIX); // Reset
         // LIBS.set_I4(leftLeg.MOVE_MATRIX);  // Reset
         if (isJumping) {

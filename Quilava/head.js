@@ -20,6 +20,10 @@ export class HeadShape {
     initialPosY = 4.0; 
     standRotX = 0.0;
     crawlRotX = -Math.PI / 2;
+    standPosY = 0.0;  // Posisi Y saat berdiri (tidak bergeser)
+    crawlPosY = 1; // Posisi Y saat merangkak (turun 1 unit)
+    standPosZ = 0.0;  // Posisi Z saat berdiri (tidak bergeser)
+    crawlPosZ = 1;  // Posisi Z saat merangkak (maju 0.2 unit)
     standOuterColor = [1.0, 0.6, 0.1]; // Orange
     crawlOuterColor = [1.0, 0.3, 0.0]; // Merah
     standInnerColor = [1.0, 0.9, 0.2]; // Kuning
@@ -225,6 +229,7 @@ export class HeadShape {
     });
 
     // POSISI KEPALA GLOBAL
+    // LIBS.translateY(this.POSITION_MATRIX, 1);
     LIBS.translateY(this.POSITION_MATRIX, 1);
     const globalHeadScale = 1.4;
     LIBS.scaleX(this.POSITION_MATRIX, globalHeadScale);
@@ -281,12 +286,13 @@ export class HeadShape {
   
     // RENDER -----------------------------------------------------------------------
   render(PARENT_MATRIX) {
-    const MODEL_MATRIX = LIBS.multiply(
-      PARENT_MATRIX,
-      LIBS.multiply(this.POSITION_MATRIX, this.MOVE_MATRIX)
+    const LOCAL_BODY_TRANSFORM = LIBS.multiply(this.POSITION_MATRIX, this.MOVE_MATRIX);
+    const MODEL_MATRIX = LIBS.multiply(
+        LOCAL_BODY_TRANSFORM, // 1. Matriks Local dulu
+        PARENT_MATRIX // 2. Baru Parent
     );
-    mat4.multiply(MODEL_MATRIX, this.POSITION_MATRIX, this.MOVE_MATRIX);
-    mat4.multiply(MODEL_MATRIX, PARENT_MATRIX, MODEL_MATRIX);
+    // mat4.multiply(MODEL_MATRIX, this.POSITION_MATRIX, this.MOVE_MATRIX);
+    // mat4.multiply(MODEL_MATRIX, PARENT_MATRIX, MODEL_MATRIX);
     this.OBJECTS.forEach((obj) => {
       let M = MODEL_MATRIX;
       if (obj.localMatrix) M = LIBS.multiply(obj.localMatrix, MODEL_MATRIX);
@@ -504,6 +510,8 @@ export class HeadShape {
         // Interpolasi
         const t = crawlAmount * crawlAmount * (3 - 2 * crawlAmount);
         const currentRotationX = this._lerp(this.standRotX, this.crawlRotX, t);
+        const currentPositionY = this._lerp(this.standPosY, this.crawlPosY, t);
+        const currentPositionZ = this._lerp(this.standPosZ, this.crawlPosZ, t);
 
         // Flicker Parameters
         const standFlickerSpeed = 6.0;
@@ -540,6 +548,8 @@ export class HeadShape {
             this.GL.bufferSubData(this.GL.ARRAY_BUFFER, 0, new Float32Array(this._tempFlameVertices));
         });
         LIBS.set_I4(this.MOVE_MATRIX);
+        LIBS.translateY(this.MOVE_MATRIX, currentPositionY);
+        LIBS.translateZ(this.MOVE_MATRIX, currentPositionZ);
         LIBS.rotateX(this.MOVE_MATRIX, currentRotationX);
         this.childs.forEach(child => {
             if (child.animate) {

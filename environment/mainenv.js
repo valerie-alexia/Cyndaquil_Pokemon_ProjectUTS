@@ -3,6 +3,12 @@ import { LIBS } from "./libs.js";
 import { PokeballShell } from "./pokeballshell.js";
 import { Terrain } from "./terrain.js";
 
+// ADD THESE NEW IMPORTS
+import { HeadShape } from "../Quilava/head.js";
+import { BodyShape } from "../Quilava/body.js";
+import { ArmShape } from "../Quilava/arms.js";
+import { LegsShape } from "../Quilava/legs.js";
+
 function main() {
   const CANVAS = document.getElementById("thisCanvas");
   CANVAS.width = window.innerWidth;
@@ -67,6 +73,28 @@ function main() {
   shell.setup();
   terrain.setup();
 
+  // Create Quilava Parts
+  var quilava_body = new BodyShape(GL, SHADER_PROGRAM, _position, _color, _Mmatrix);
+  var quilava_head = new HeadShape(GL, SHADER_PROGRAM, _position, _color, _Mmatrix);
+  var quilava_rightArm = new ArmShape(GL, SHADER_PROGRAM, _position, _color, _Mmatrix, +1);
+  var quilava_leftArm = new ArmShape(GL, SHADER_PROGRAM, _position, _color, _Mmatrix, -1);
+  var quilava_leftLeg = new LegsShape(GL, SHADER_PROGRAM, _position, _color, _Mmatrix, +1);
+  var quilava_rightLeg = new LegsShape(GL, SHADER_PROGRAM, _position, _color, _Mmatrix, -1);
+
+  // Setup Quilava Parts
+  quilava_body.setup();
+  quilava_head.setup();
+  quilava_rightArm.setup();
+  quilava_leftArm.setup();
+  quilava_leftLeg.setup();
+  quilava_rightLeg.setup();
+
+  // Build Quilava Hierarchy
+  quilava_body.childs.push(quilava_head);
+  quilava_body.childs.push(quilava_rightArm);
+  quilava_body.childs.push(quilava_leftArm);
+  // Note: Just like in your Quilava/main.js, the legs are NOT children of the body
+  
   // === MATRICES ===
   const PROJMATRIX = LIBS.get_projection(40, CANVAS.width / CANVAS.height, 1, 100);
   const VIEWMATRIX = LIBS.get_I4();
@@ -88,6 +116,16 @@ function main() {
       THETA = 0;
       PHI = 0.3;
       cameraVelocity = 0;
+    }
+    if (e.key === 'c' || e.key === 'C') {
+        quilava_body.toggleCrawlState(); 
+        // Propagate to children (head and arms)
+        quilava_body.childs.forEach(child => {
+            if (child.toggleCrawlState) {
+                child.toggleCrawlState(); 
+            }
+        });
+        // Note: Quilava's legs don't have a crawl animation, so we don't call it for them
     }
   });
   window.addEventListener("keyup", (e) => {
@@ -112,7 +150,8 @@ function main() {
   GL.clearColor(0.1, 0.1, 0.2, 1.0);
 
   // === ANIMATE ===
-  const animate = () => {
+  const animate = (time) => {
+    const timeInSeconds = time * 0.001;
     GL.viewport(0, 0, CANVAS.width, CANVAS.height);
     GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
 
@@ -140,6 +179,12 @@ function main() {
     GL.uniformMatrix4fv(_Pmatrix, false, PROJMATRIX);
     GL.uniformMatrix4fv(_Vmatrix, false, VIEWMATRIX);
 
+    quilava_body.animate(timeInSeconds);
+    // The body's animate call will call its children (head, arms)
+    // We also need to animate the legs separately
+    // quilava_leftLeg.animate(timeInSeconds); // (Legs don't have animation, but good practice)
+    // quilava_rightLeg.animate(timeInSeconds); // (Legs don't have animation, but good practice)
+
     // === RENDER OBJECTS ===
     const WORLD = LIBS.get_I4();
     shell.render(WORLD, currentOpenAngle);
@@ -148,11 +193,34 @@ function main() {
     LIBS.translateY(terrainMatrix, -shell.bandHeight / 2 + 0.1);
     terrain.render(terrainMatrix);
 
+    // 1. Create a model matrix for Quilava
+    const QUILAVA_MODEL_MATRIX = LIBS.get_I4();
+
+    // 2. Position Quilava
+    // Based on my calculation, Quilava's feet are at y = -5.91 in its local space.
+    // The terrain is at y = -1.025.
+    // So we need to translate Quilava up by (5.91 - 1.025) = 4.885
+    LIBS.translateY(QUILAVA_MODEL_MATRIX, 4.885);
+    
+    // Let's also move him forward a bit so he's not at the center
+    LIBS.translateZ(QUILAVA_MODEL_MATRIX, 5);
+
+    // And make him a bit smaller to fit
+    LIBS.scaleX(QUILAVA_MODEL_MATRIX, 0.5);
+    LIBS.scaleY(QUILAVA_MODEL_MATRIX, 0.5);
+    LIBS.scaleZ(QUILAVA_MODEL_MATRIX, 0.5);
+
+
+    // 3. Render Quilava (just like in Quilava/main.js)
+    quilava_body.render(QUILAVA_MODEL_MATRIX);
+    quilava_leftLeg.render(QUILAVA_MODEL_MATRIX);
+    quilava_rightLeg.render(QUILAVA_MODEL_MATRIX)
+
     GL.flush();
     requestAnimationFrame(animate);
   };
 
-  animate();
+  animate(0);
 }
 
 window.addEventListener("load", main);

@@ -1,6 +1,5 @@
 // environment/pokeballshell.js
-import { LIBS } from './libs.js'; // Adjust path if needed
-
+import { LIBS } from './libs.js'; 
 export class PokeballShell {
     GL = null; SHADER_PROGRAM = null; _position = null; _color = null; _MMatrix = null;
     
@@ -44,19 +43,19 @@ export class PokeballShell {
         const bandMatrix = LIBS.get_I4();
         this.staticParts.push(this.createBufferObject(bandGeo.vertices, bandGeo.indices, bandMatrix));
 
-        // 🔘 BUTTON BASE (black)
+        // BUTTON BASE (black)
         const buttonBaseGeo = this.generateCylinder(buttonOuterRadius, buttonOuterRadius, buttonDepth, 24, 1, blackColor);
         const buttonBaseMatrix = LIBS.get_I4();
         LIBS.translateZ(buttonBaseMatrix, this.radius + 0.05); // sedikit keluar dari bola
         this.staticParts.push(this.createBufferObject(buttonBaseGeo.vertices, buttonBaseGeo.indices, buttonBaseMatrix));
 
-        // 🔘 BUTTON TOP (white, menonjol)
+        // BUTTON TOP (white, menonjol)
         const buttonTopGeo = this.generateCylinder(buttonInnerRadius, buttonInnerRadius, buttonDepth * 0.6, 24, 1, whiteColor);
         const buttonTopMatrix = LIBS.get_I4();
         LIBS.translateZ(buttonTopMatrix, this.radius + buttonDepth * 0.4);
         this.staticParts.push(this.createBufferObject(buttonTopGeo.vertices, buttonTopGeo.indices, buttonTopMatrix));
 
-        // 🔘 BUTTON CENTER DOT (gray, kecil)
+        // BUTTON CENTER DOT (gray, kecil)
         const buttonDotGeo = this.generateCylinder(buttonInnerRadius * 0.4, buttonInnerRadius * 0.4, buttonDepth * 0.4, 24, 1, grayColor);
         const buttonDotMatrix = LIBS.get_I4();
         LIBS.translateZ(buttonDotMatrix, this.radius + buttonDepth * 0.8);
