@@ -9,6 +9,8 @@ import { BodyShape } from "../Quilava/body.js";
 import { ArmShape } from "../Quilava/arms.js";
 import { LegsShape } from "../Quilava/legs.js";
 
+import { HisuianTyphlosion } from "../Hisuian-Typhlosion/HisuianTyphlosion.js";
+
 function main() {
   const CANVAS = document.getElementById("thisCanvas");
   CANVAS.width = window.innerWidth;
@@ -68,20 +70,73 @@ function main() {
   GL.enableVertexAttribArray(_color);
 
   // === OBJECTS ===
-  const shell = new PokeballShell(GL, SHADER_PROGRAM, _position, _color, _Mmatrix);
-  const terrain = new Terrain(GL, SHADER_PROGRAM, _position, _color, _Mmatrix, shell.radius);
+  const shell = new PokeballShell(
+    GL,
+    SHADER_PROGRAM,
+    _position,
+    _color,
+    _Mmatrix
+  );
+  const terrain = new Terrain(
+    GL,
+    SHADER_PROGRAM,
+    _position,
+    _color,
+    _Mmatrix,
+    shell.radius
+  );
   shell.setup();
   terrain.setup();
 
-  // Create Quilava 
-  var quilava_body = new BodyShape(GL, SHADER_PROGRAM, _position, _color, _Mmatrix);
-  var quilava_head = new HeadShape(GL, SHADER_PROGRAM, _position, _color, _Mmatrix);
-  var quilava_rightArm = new ArmShape(GL, SHADER_PROGRAM, _position, _color, _Mmatrix, +1);
-  var quilava_leftArm = new ArmShape(GL, SHADER_PROGRAM, _position, _color, _Mmatrix, -1);
-  var quilava_leftLeg = new LegsShape(GL, SHADER_PROGRAM, _position, _color, _Mmatrix, +1);
-  var quilava_rightLeg = new LegsShape(GL, SHADER_PROGRAM, _position, _color, _Mmatrix, -1);
+  // Create Quilava
+  var quilava_body = new BodyShape(
+    GL,
+    SHADER_PROGRAM,
+    _position,
+    _color,
+    _Mmatrix
+  );
+  var quilava_head = new HeadShape(
+    GL,
+    SHADER_PROGRAM,
+    _position,
+    _color,
+    _Mmatrix
+  );
+  var quilava_rightArm = new ArmShape(
+    GL,
+    SHADER_PROGRAM,
+    _position,
+    _color,
+    _Mmatrix,
+    +1
+  );
+  var quilava_leftArm = new ArmShape(
+    GL,
+    SHADER_PROGRAM,
+    _position,
+    _color,
+    _Mmatrix,
+    -1
+  );
+  var quilava_leftLeg = new LegsShape(
+    GL,
+    SHADER_PROGRAM,
+    _position,
+    _color,
+    _Mmatrix,
+    +1
+  );
+  var quilava_rightLeg = new LegsShape(
+    GL,
+    SHADER_PROGRAM,
+    _position,
+    _color,
+    _Mmatrix,
+    -1
+  );
 
-  // Setup Quilava 
+  // Setup Quilava
   quilava_body.setup();
   quilava_head.setup();
   quilava_rightArm.setup();
@@ -93,9 +148,23 @@ function main() {
   quilava_body.childs.push(quilava_head);
   quilava_body.childs.push(quilava_rightArm);
   quilava_body.childs.push(quilava_leftArm);
-  
+
+  var htyphlosion = new HisuianTyphlosion(
+    GL,
+    SHADER_PROGRAM,
+    _position,
+    _color,
+    _Mmatrix
+  );
+  htyphlosion.setup();
+
   // === MATRICES ===
-  const PROJMATRIX = LIBS.get_projection(40, CANVAS.width / CANVAS.height, 1, 100);
+  const PROJMATRIX = LIBS.get_projection(
+    40,
+    CANVAS.width / CANVAS.height,
+    1,
+    100
+  );
   const VIEWMATRIX = LIBS.get_I4();
 
   // === CAMERA STATE ===
@@ -116,13 +185,23 @@ function main() {
       PHI = 0.3;
       cameraVelocity = 0;
     }
-    if (e.key === 'c' || e.key === 'C') {
-        quilava_body.toggleCrawlState(); 
-        quilava_body.childs.forEach(child => {
-            if (child.toggleCrawlState) {
-                child.toggleCrawlState(); 
-            }
-        });
+    if (e.key === "c" || e.key === "C") {
+      quilava_body.toggleCrawlState();
+      quilava_body.childs.forEach((child) => {
+        if (child.toggleCrawlState) {
+          child.toggleCrawlState();
+        }
+      });
+    }
+
+    if (e.key === "n" || e.key === "N") {
+      htyphlosion.startNod();
+    }
+    if (e.key === "m" || e.key === "M") {
+      htyphlosion.startShake();
+    }
+    if (e.key === "Space" || e.key === " ") {
+      htyphlosion.startJump();
     }
   });
   window.addEventListener("keyup", (e) => {
@@ -175,11 +254,13 @@ function main() {
     GL.uniformMatrix4fv(_Vmatrix, false, VIEWMATRIX);
 
     quilava_body.animate(timeInSeconds);
-    quilava_body.childs.forEach(child => {
+    quilava_body.childs.forEach((child) => {
       if (child.animate) {
         child.animate(timeInSeconds);
       }
     });
+
+    htyphlosion.animate(time);
 
     // === RENDER OBJECTS ===
     const WORLD = LIBS.get_I4();
@@ -205,6 +286,17 @@ function main() {
     quilava_leftLeg.render(QUILAVA_MODEL_MATRIX);
     quilava_rightLeg.render(QUILAVA_MODEL_MATRIX);
     GL.enable(GL.CULL_FACE);
+
+    const HTYPHLOSION_MODEL_MATRIX = LIBS.get_I4();
+    LIBS.translateX(HTYPHLOSION_MODEL_MATRIX, 6.5);
+    LIBS.translateY(HTYPHLOSION_MODEL_MATRIX, 6.5);
+    LIBS.translateZ(HTYPHLOSION_MODEL_MATRIX, 5);
+    LIBS.scaleX(HTYPHLOSION_MODEL_MATRIX, 1);
+    LIBS.scaleY(HTYPHLOSION_MODEL_MATRIX, 1);
+    LIBS.scaleZ(HTYPHLOSION_MODEL_MATRIX, 1);
+    // Hisuian Typhlosion render
+    GL.disable(GL.CULL_FACE);
+    htyphlosion.render(HTYPHLOSION_MODEL_MATRIX);
     GL.flush();
     requestAnimationFrame(animate);
   };

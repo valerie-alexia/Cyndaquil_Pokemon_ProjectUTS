@@ -35,9 +35,10 @@ export class ArmShape {
         var armDirY = -1; // pointing downward
 
         // Colors (match cream tone of head/body)
-        var armColor = { r: 0.9, g: 0.8, b: 0.6 }; 
+        // 0.98, 0.94, 0.76
+        var armColor = { r: 0.98, g: 0.94, b: 0.76 }; 
         // var armColor = { r: 0.9, g: 0.0, b: 0.0 }; 
-        var clawColor = { r: 0.9, g: 0.8, b: 0.6 };
+        var clawColor = { r: 0.98, g: 0.94, b: 0.76 };
         // var clawColor = { r: 0, g: 0, b: 0 };
 
         // 1) Shoulder ellipse
@@ -129,7 +130,7 @@ export class ArmShape {
         }
     }
 
-    // New: elliptical cylinder
+    
     addEllipticalCylinder(rxTop, rzTop, rxBottom, rzBottom, height, radialSegments, heightSegments, center, color) {
         var baseIndex = this.vertices.length / 6;
         for (var yIdx = 0; yIdx <= heightSegments; yIdx++) {

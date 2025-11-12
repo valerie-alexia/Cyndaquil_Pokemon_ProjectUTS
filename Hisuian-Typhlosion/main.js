@@ -175,12 +175,12 @@ function main() {
     const breathVerticalShift = 0.05;
 
 
-    let isRotatingArb = false;
-    let rotateArbStartTime = 0;
-    const rotateArbDuration = 1000;
-    const rotateArbSpeed = 0.002;
-    const rotateAxis = [0, 1, 1];
-    const shoulderPivot = [0.0, 0.7, 0.0];
+    // let isRotatingArb = false;
+    // let rotateArbStartTime = 0;
+    // const rotateArbDuration = 1000;
+    // const rotateArbSpeed = 0.002;
+    // const rotateAxis = [0, 1, 1];
+    // const shoulderPivot = [0.0, 0.7, 0.0];
 
     // Fungsi Easing Sederhana
     function easeInOutQuad(t) {

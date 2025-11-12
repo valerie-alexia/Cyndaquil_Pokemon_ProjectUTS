@@ -25,7 +25,7 @@ export class HeadShape {
         // ===== HEAD =====
         const head = this.createEllipsoid(1.03, 0.9, 1, 200, 200,
             [0.25, 0.2, 0.3],
-            [0.9, 0.8, 0.6]
+            [0.98, 0.94, 0.76]
         );
         const headMatrix = LIBS.get_I4();
         // LIBS.translateY(headMatrix, -0.5);
@@ -33,7 +33,7 @@ export class HeadShape {
 
         // ===== SNOUT =====
         const snout = this.createEllipticParaboloid(0.8, 0.42, 0.7, 250,
-            [0.25, 0.2, 0.3], [0.9, 0.8, 0.6]);
+            [0.25, 0.2, 0.3], [0.98, 0.94, 0.76]);
         const snoutMatrix = LIBS.get_I4();
         LIBS.translateY(snoutMatrix, 0.01);
         LIBS.translateZ(snoutMatrix, 1.8);
@@ -206,7 +206,7 @@ export class HeadShape {
         const noseRadius = 0.01;
         const noseSegments = 10;
 
-        // Helper to create a nostril circle
+        // Hidung
         const createNostril = (offsetX, offsetY, offsetZ, rotationY = 0) => {
             const nostril = this.createShape(noseRadius, noseSegments, noseColor);
             const nostrilMatrix = LIBS.get_I4();

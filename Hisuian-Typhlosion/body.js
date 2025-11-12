@@ -88,9 +88,10 @@ function generateSphere(a, b, c, stack, step) {
             var z = c * Math.sin(v) * Math.cos(u);
             let r, g, bcol;
             if (z >= -1) {
-                r = 0.9 + y * 0.005;
-                g = 0.8 + y * 0.01;
-                bcol = 0.6 + y * 0.01;
+                // 0.98, 0.94, 0.76
+                r = 0.98 + y * 0.005;
+                g = 0.94 + y * 0.01;
+                bcol = 0.76 + y * 0.01;
             } else {
                 // Belakang (purple-gray)
                 r = 0.25; g = 0.2; bcol = 0.3;
@@ -178,10 +179,11 @@ function generateHyper1d(a, b, c, stack, step, uBottomTrimRatio = 0) {
             let currentNeckBandTop = currentCenterNeckY + currentNeckHeight / 2.0;
             let currentNeckBandBottom = currentCenterNeckY - currentNeckHeight / 2.0;
 
+            // 0.98, 0.94, 0.76
             // Warna depan (di luar kalung)
-            const frontColorR = 0.9 + y * 0.005;
-            const frontColorG = 0.8 + y * 0.01;
-            const frontColorB = 0.6 + y * 0.01;
+            const frontColorR = 0.98 + y * 0.005;
+            const frontColorG = 0.94 + y * 0.01;
+            const frontColorB = 0.76 + y * 0.01;
 
             // Cek apakah vertex berada di rentang kalung
             if (y < currentNeckBandTop && y > currentNeckBandBottom) {

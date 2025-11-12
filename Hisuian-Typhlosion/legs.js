@@ -33,7 +33,8 @@ export class LegsShape {
         var legDirY = -1;
 
         // Colors 
-        var legColor = { r: 0.883, g: 0.756, b: 0.566 };
+        // 0.98, 0.94, 0.76
+        var legColor = { r: 0.98, g: 0.94, b: 0.76 };
 
         // 1) Upper Leg (Thigh) - A thick ellipsoid
         this.addEllipsoid(0.8, 1.5, 0.8, 24, 32, hipCenter, legColor);
