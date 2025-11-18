@@ -244,6 +244,10 @@ function main() {
 
     const currentOpenAngle = animationProgress * maxOpenAngle;
 
+    terrain.animate(time * 0.001); 
+    
+    // terrain.render(MOVEMATRIX);
+
     // CAMERA
     LIBS.set_I4(VIEWMATRIX);
     LIBS.translateZ(VIEWMATRIX, -80);
