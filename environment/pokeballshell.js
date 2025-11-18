@@ -4,7 +4,7 @@ export class PokeballShell {
     GL = null; SHADER_PROGRAM = null; _position = null; _color = null; _MMatrix = null;
     
     topHalf = null;
-    staticParts = []; // bottom, band, button parts
+    staticParts = []; 
 
     radius = 15.0;
     bandHeight = 0;
@@ -21,6 +21,7 @@ export class PokeballShell {
 
         const buttonOuterRadius = this.radius * 0.25;
         const buttonInnerRadius = this.radius * 0.18;
+        const buttonDetailRadius = this.radius * 0.08;
         const buttonDepth = this.bandHeight * 1.3;
 
         const redColor = [0.8, 0.1, 0.1];
@@ -43,23 +44,22 @@ export class PokeballShell {
         const bandMatrix = LIBS.get_I4();
         this.staticParts.push(this.createBufferObject(bandGeo.vertices, bandGeo.indices, bandMatrix));
 
-        // BUTTON BASE (black)
-        const buttonBaseGeo = this.generateCylinder(buttonOuterRadius, buttonOuterRadius, buttonDepth, 24, 1, blackColor);
+        //Button Parts
+        const rotationAngle = Math.PI / 2; 
+
+        //Button Base (black)
+        const buttonBaseGeo = this.generateClosedCylinder(buttonOuterRadius, buttonOuterRadius, buttonDepth, 32, blackColor);
         const buttonBaseMatrix = LIBS.get_I4();
-        LIBS.translateZ(buttonBaseMatrix, this.radius + 0.05); // sedikit keluar dari bola
+        LIBS.translateZ(buttonBaseMatrix, this.radius);
+        LIBS.rotateX(buttonBaseMatrix, rotationAngle);
         this.staticParts.push(this.createBufferObject(buttonBaseGeo.vertices, buttonBaseGeo.indices, buttonBaseMatrix));
 
-        // BUTTON TOP (white, menonjol)
-        const buttonTopGeo = this.generateCylinder(buttonInnerRadius, buttonInnerRadius, buttonDepth * 0.6, 24, 1, whiteColor);
+        //Button Top (white)
+        const buttonTopGeo = this.generateClosedCylinder(buttonInnerRadius, buttonInnerRadius, buttonDepth, 32, whiteColor);
         const buttonTopMatrix = LIBS.get_I4();
-        LIBS.translateZ(buttonTopMatrix, this.radius + buttonDepth * 0.4);
+        LIBS.translateZ(buttonTopMatrix, this.radius + 0.15); 
+        LIBS.rotateX(buttonTopMatrix, rotationAngle);
         this.staticParts.push(this.createBufferObject(buttonTopGeo.vertices, buttonTopGeo.indices, buttonTopMatrix));
-
-        // BUTTON CENTER DOT (gray, kecil)
-        const buttonDotGeo = this.generateCylinder(buttonInnerRadius * 0.4, buttonInnerRadius * 0.4, buttonDepth * 0.4, 24, 1, grayColor);
-        const buttonDotMatrix = LIBS.get_I4();
-        LIBS.translateZ(buttonDotMatrix, this.radius + buttonDepth * 0.8);
-        this.staticParts.push(this.createBufferObject(buttonDotGeo.vertices, buttonDotGeo.indices, buttonDotMatrix));
     }
 
     createBufferObject(vertices, indices, localMatrix) {
@@ -175,6 +175,43 @@ export class PokeballShell {
                 indices.push(first, second, first + 1);
                 indices.push(second, second + 1, first + 1);
             }
+        }
+
+        return { vertices, indices };
+    }
+    
+    generateClosedCylinder(topRadius, bottomRadius, height, segments, color) {
+        const vertices = [];
+        const indices = [];
+        vertices.push(0, height / 2, 0, ...color); 
+        for (let i = 0; i <= segments; i++) {
+            const angle = (i / segments) * 2 * Math.PI;
+            const x = topRadius * Math.cos(angle);
+            const z = topRadius * Math.sin(angle);
+            vertices.push(x, height / 2, z, ...color);
+        }
+        const bottomCenterIndex = vertices.length / 6; 
+        vertices.push(0, -height / 2, 0, ...color);
+        for (let i = 0; i <= segments; i++) {
+            const angle = (i / segments) * 2 * Math.PI;
+            const x = bottomRadius * Math.cos(angle);
+            const z = bottomRadius * Math.sin(angle);
+            vertices.push(x, -height / 2, z, ...color);
+        }
+        for (let i = 1; i <= segments; i++) {
+            indices.push(0, i, i + 1);
+        }
+        const startBottom = bottomCenterIndex + 1;
+        for (let i = 0; i < segments; i++) {
+            indices.push(bottomCenterIndex, startBottom + i + 1, startBottom + i);
+        }
+        for (let i = 0; i < segments; i++) {
+            const top1 = 1 + i;
+            const top2 = 1 + i + 1;
+            const bot1 = startBottom + i;
+            const bot2 = startBottom + i + 1;
+            indices.push(top1, bot1, top2);
+            indices.push(bot1, bot2, top2);
         }
 
         return { vertices, indices };
