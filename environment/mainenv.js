@@ -11,6 +11,13 @@ import { LegsShape } from "../Quilava/legs.js";
 
 import { HisuianTyphlosion } from "../Hisuian-Typhlosion/HisuianTyphlosion.js";
 
+// Typhlosion
+import { BodyShape as TyBodyShape } from "../Typhlosion/body.js";
+import { HeadShape as TyHeadShape } from "../Typhlosion/head.js";
+import { ArmShape  as TyArmShape  } from "../Typhlosion/arms.js";
+import { LegsShape as TyLegsShape } from "../Typhlosion/legs.js";
+
+
 function main() {
   const CANVAS = document.getElementById("thisCanvas");
   CANVAS.width = window.innerWidth;
@@ -158,6 +165,73 @@ function main() {
   );
   htyphlosion.setup();
 
+  
+  // === CREATE TYPHLOSION ===
+  const ty_body = new TyBodyShape(
+    GL,
+    SHADER_PROGRAM,
+    _position,
+    _color,
+    _Mmatrix
+  );
+  const ty_head = new TyHeadShape(
+    GL,
+    SHADER_PROGRAM,
+    _position,
+    _color,
+    _Mmatrix
+  );
+  const ty_rightArm = new TyArmShape(
+    GL,
+    SHADER_PROGRAM,
+    _position,
+    _color,
+    _Mmatrix,
+    +1
+  );
+  const ty_leftArm = new TyArmShape(
+    GL,
+    SHADER_PROGRAM,
+    _position,
+    _color,
+    _Mmatrix,
+    -1
+  );
+  const ty_leftLeg = new TyLegsShape(
+    GL,
+    SHADER_PROGRAM,
+    _position,
+    _color,
+    _Mmatrix,
+    +1
+  );
+  const ty_rightLeg = new TyLegsShape(
+    GL,
+    SHADER_PROGRAM,
+    _position,
+    _color,
+    _Mmatrix,
+    -1
+  );
+
+  // Setup Typhlosion
+  ty_body.setup();
+  ty_head.setup();
+  ty_rightArm.setup();
+  ty_leftArm.setup();
+  ty_leftLeg.setup();
+  ty_rightLeg.setup();
+
+  ty_body.childs.push(ty_head);
+  ty_body.childs.push(ty_rightArm);
+  ty_body.childs.push(ty_leftArm);
+  ty_body.childs.push(ty_rightLeg);
+  ty_body.childs.push(ty_leftLeg);
+
+  
+
+
+
   // === MATRICES ===
   const PROJMATRIX = LIBS.get_projection(
     40,
@@ -175,6 +249,31 @@ function main() {
   const rotateFriction = 0.9;
   const maxSpeed = 0.03;
   const keys = { a: false, d: false };
+
+    // === TYPHLOSION ANIMATION STATE ===
+  let prevTimeSeconds = 0;
+
+  // posisi dasar Typhlosion 
+  let tyPosX = -6.5;
+  let tyPosY = 4.5;
+  let tyPosZ = 3.0;
+
+  let tyIsWalking = false;
+  let tyWalkTime = 0;
+  let tyTargetZ = tyPosZ;         
+  let tyWalkDirection = 1;        
+  const tyWalkStepDistance = 5.0; 
+  const tyWalkDuration = 2.0;     
+  const tyWalkSpeed = tyWalkStepDistance / tyWalkDuration;
+
+
+  let tyIsJumping = false;
+  let tyJumpTime = 0;
+  const tyJumpDuration = 0.8;
+  const tyJumpHeight = 2.0;
+
+  const tyBreathSpeed = 2.0;
+
 
   // === KEYBOARD EVENTS ===
   window.addEventListener("keydown", (e) => {
@@ -202,7 +301,26 @@ function main() {
     }
     if (e.key === "Space" || e.key === " ") {
       htyphlosion.startJump();
+      if (!tyIsJumping) {
+        tyIsJumping = true;
+        tyJumpTime = 0;
+      }
     }
+      
+    if (e.key === "2") { // jalan 
+      if (!tyIsWalking) {
+        tyIsWalking = true;
+        tyWalkTime = 0;
+        // set target langkah
+        tyTargetZ = tyPosZ + tyWalkStepDistance * tyWalkDirection;
+        //maju mundur
+        tyWalkDirection *= -2;
+      }
+    }
+
+   
+
+
   });
   window.addEventListener("keyup", (e) => {
     if (e.key === "a" || e.key === "A") keys.a = false;
@@ -228,6 +346,10 @@ function main() {
   // === ANIMATE ===
   const animate = (time) => {
     const timeInSeconds = time * 0.001;
+
+    const dt = timeInSeconds - prevTimeSeconds;
+    prevTimeSeconds = timeInSeconds;
+
     GL.viewport(0, 0, CANVAS.width, CANVAS.height);
     GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
 
@@ -248,6 +370,95 @@ function main() {
     
     // terrain.render(MOVEMATRIX);
 
+    // === ANIMATE Typhlosion ===
+    htyphlosion.animate(time);
+
+    // animasi vertex api Typhlosion
+    if (typeof ty_body.tick === "function") {
+      ty_body.tick(timeInSeconds);
+    }
+
+    // --- POSISI & TILT API TYPHLOSION (BIAR MIRING KE ATAS) ---
+    if (ty_body.flames) {
+      LIBS.set_I4(ty_body.flames.MOVE_MATRIX);
+
+      // sama seperti di main.js standalone kamu
+      LIBS.rotateX(ty_body.flames.MOVE_MATRIX, -4.7);
+      LIBS.rotateY(ty_body.flames.MOVE_MATRIX, 3);
+
+      LIBS.translateX(ty_body.flames.MOVE_MATRIX, 0);
+      LIBS.translateY(ty_body.flames.MOVE_MATRIX, 2);
+      LIBS.translateZ(ty_body.flames.MOVE_MATRIX, 0.1);
+    }
+    // === UPDATE STATE ANIMASI TYPHLOSION ===
+    // napas: selalu aktif
+    const breath = Math.sin(timeInSeconds * tyBreathSpeed) * 0.4;
+
+   
+    // Logika Jalan
+    if (tyIsWalking) {
+      tyWalkTime += dt;
+
+      const direction = tyTargetZ > tyPosZ ? 1 : -1;
+      tyPosZ += tyWalkSpeed * dt * direction;
+
+      // kalau sudah mencapai target, stop
+      if (
+        (direction === 1 && tyPosZ >= tyTargetZ) ||
+        (direction === -1 && tyPosZ <= tyTargetZ)
+      ) {
+        tyPosZ = tyTargetZ;
+        tyIsWalking = false;
+        tyWalkTime = 0;
+      }
+    }
+
+    // logika lompat
+    let jumpOffset = 0;
+    if (tyIsJumping) {
+      tyJumpTime += dt;
+      if (tyJumpTime >= tyJumpDuration) {
+        tyIsJumping = false;
+        tyJumpTime = 0;
+      } else {
+        const phase = (tyJumpTime / tyJumpDuration) * Math.PI; 
+        jumpOffset = Math.sin(phase) * tyJumpHeight;
+      }
+    }
+
+    // swing kaki pas jalan
+    const walkSwing = tyIsWalking ? Math.sin(timeInSeconds * 10.0) * 0.4 : 0.0;
+
+    // HEAD (napas: naik turun dikit + sedikit nod)
+    LIBS.set_I4(ty_head.MOVE_MATRIX);
+    LIBS.translateY(ty_head.MOVE_MATRIX, 2.5 + breath * 0.5);
+    LIBS.translateZ(ty_head.MOVE_MATRIX, 1.7);
+    LIBS.rotateX(ty_head.MOVE_MATRIX, 0.1 + breath * 0.1);
+    LIBS.scaleX(ty_head.MOVE_MATRIX, 1.3);
+    LIBS.scaleY(ty_head.MOVE_MATRIX, 1.3);
+    LIBS.scaleZ(ty_head.MOVE_MATRIX, 1.4);
+
+    // RIGHT LEG
+    LIBS.set_I4(ty_rightLeg.MOVE_MATRIX);
+    LIBS.translateY(ty_rightLeg.MOVE_MATRIX, 3.0);
+    LIBS.translateZ(ty_rightLeg.MOVE_MATRIX, 0.0);
+    LIBS.rotateX(ty_rightLeg.MOVE_MATRIX, 0.1 + walkSwing); // ayunan kaki
+    LIBS.scaleX(ty_rightLeg.MOVE_MATRIX, 1.3);
+    LIBS.scaleY(ty_rightLeg.MOVE_MATRIX, 1.45);
+    LIBS.scaleZ(ty_rightLeg.MOVE_MATRIX, 1.6);
+
+    // LEFT LEG
+    LIBS.set_I4(ty_leftLeg.MOVE_MATRIX);
+    LIBS.translateY(ty_leftLeg.MOVE_MATRIX, 3.0);
+    LIBS.translateZ(ty_leftLeg.MOVE_MATRIX, 0.0);
+    LIBS.rotateX(ty_leftLeg.MOVE_MATRIX, 0.1 - walkSwing); // lawan phase kaki kanan
+    LIBS.scaleX(ty_leftLeg.MOVE_MATRIX, 1.3);
+    LIBS.scaleY(ty_leftLeg.MOVE_MATRIX, 1.45);
+    LIBS.scaleZ(ty_leftLeg.MOVE_MATRIX, 1.6);
+
+    // ----------------------------------------------------------
+
+
     // CAMERA
     LIBS.set_I4(VIEWMATRIX);
     LIBS.translateZ(VIEWMATRIX, -80);
@@ -264,7 +475,10 @@ function main() {
       }
     });
 
-    htyphlosion.animate(time);
+
+    if (typeof ty_body.tick === "function") {
+      ty_body.tick(timeInSeconds);
+    }
 
     // === RENDER OBJECTS ===
     const WORLD = LIBS.get_I4();
@@ -298,9 +512,35 @@ function main() {
     LIBS.scaleX(HTYPHLOSION_MODEL_MATRIX, 1);
     LIBS.scaleY(HTYPHLOSION_MODEL_MATRIX, 1);
     LIBS.scaleZ(HTYPHLOSION_MODEL_MATRIX, 1);
+
     // Hisuian Typhlosion render
     GL.disable(GL.CULL_FACE);
     htyphlosion.render(HTYPHLOSION_MODEL_MATRIX);
+
+    // === TYPHLOSION ====
+    const TYPHLOSION_MODEL_MATRIX = LIBS.get_I4();
+
+
+    LIBS.translateX(TYPHLOSION_MODEL_MATRIX, tyPosX);
+    LIBS.translateY(
+      TYPHLOSION_MODEL_MATRIX,
+      tyPosY + breath * 0.3 + jumpOffset
+    );
+    LIBS.translateZ(TYPHLOSION_MODEL_MATRIX, tyPosZ);
+
+    const SCALE = 0.8;
+    LIBS.scaleX(TYPHLOSION_MODEL_MATRIX, SCALE);
+    LIBS.scaleY(TYPHLOSION_MODEL_MATRIX, SCALE);
+    LIBS.scaleZ(TYPHLOSION_MODEL_MATRIX, SCALE);
+
+    // Render Typhlosion
+    GL.disable(GL.CULL_FACE);
+    ty_body.render(TYPHLOSION_MODEL_MATRIX);
+    ty_head.render(TYPHLOSION_MODEL_MATRIX);
+    ty_leftLeg.render(TYPHLOSION_MODEL_MATRIX);
+    ty_rightLeg.render(TYPHLOSION_MODEL_MATRIX);
+    GL.enable(GL.CULL_FACE);
+
     GL.flush();
     requestAnimationFrame(animate);
   };

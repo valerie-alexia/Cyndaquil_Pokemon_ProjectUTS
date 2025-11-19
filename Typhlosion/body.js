@@ -1,5 +1,5 @@
 // body.js — Generator - warna - Helper - 
-
+import { LIBS } from "./libs.js"
 /* ===================== QUADRIC GENERATORS ===================== */
 
 function generateCape({ //jubah/cloak nya

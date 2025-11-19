@@ -2,6 +2,8 @@ import { BodyShape } from "./body.js";
 import { HeadShape } from "./head.js";
 import { ArmShape } from "./arms.js";
 import { LegsShape } from "./legs.js";
+import { LIBS } from "./libs.js";
+// import { LIBS } from "../environment/libs.js";
 
 function main() {
   /** @type {HTMLCanvasElement} */
@@ -88,23 +90,25 @@ function main() {
 
   // === HEAD === (jadikan child body + posisikan di puncak torso)
   const head = new HeadShape(GL, SHADER_PROGRAM, _position, _color, _Mmatrix);
-    head.setup();
+  head.setup();
+  body.childs.push(head);
 
-    // --- Pose & ukuran kepala relatif ke body ---
-    const HEAD_SCALE = 1.6;  // sedikit lebih besar agar proporsional
-    const HEAD_TILT  = 0.65; // nunduk tipis
-    const HEAD_UP    =2.6;  // tinggi (Y)
-    const HEAD_FWD   = -0.35 ;  // maju (Z) -> LEBIH KECIL dari sebelumnya supaya lebih “masuk” ke dada
+    // ====== MATRIX DASAR KEPALA (relatif ke body) ======
+  const HEAD_SCALE = 1.2;   // sama seperti versi mat4
+  const HEAD_TILT  = 0.4;  // nunduk dikit
+  const HEAD_UP    = 2.6;   // naik ke atas badan
+  const HEAD_FWD   = 1.2; // sedikit maju ke depan
 
-    mat4.identity(head.POSITION_MATRIX);
+  let HEAD_BASE = LIBS.get_I4();
 
-    // Urutan: SCALE -> ROTATE -> TRANSLATE
-    mat4.scale(    head.POSITION_MATRIX, head.POSITION_MATRIX, [HEAD_SCALE, HEAD_SCALE*0.96, HEAD_SCALE]); // *0.96 = pipihkan underside dikit
-    mat4.rotateX(  head.POSITION_MATRIX, head.POSITION_MATRIX, HEAD_TILT);
-    mat4.translate(head.POSITION_MATRIX, head.POSITION_MATRIX, [0, HEAD_UP, HEAD_FWD]);
+  const HS  = LIBS.scale(HEAD_SCALE, HEAD_SCALE * 0.96, HEAD_SCALE);
+  const HRx = LIBS.get_I4();  LIBS.rotateX(HRx, HEAD_TILT);
+  const HT  = LIBS.translate(0, HEAD_UP, HEAD_FWD);
 
+  HEAD_BASE = LIBS.multiply(HEAD_BASE, HS);   // scale dulu
+  HEAD_BASE = LIBS.multiply(HEAD_BASE, HRx);  // lalu tilt
+  HEAD_BASE = LIBS.multiply(HEAD_BASE, HT);   // lalu geser ke atas badan
 
-    body.childs.push(head);
   
 
   // === ARMS ===
@@ -247,7 +251,8 @@ function main() {
   LIBS.set_I4(body.MOVE_MATRIX);
   LIBS.translateZ(body.MOVE_MATRIX, 0.35);
 
-  LIBS.set_I4(head.MOVE_MATRIX);
+  // LIBS.set_I4(head.MOVE_MATRIX);
+  head.MOVE_MATRIX = LIBS.clone(HEAD_BASE);
 
   LIBS.set_I4(rightArm.MOVE_MATRIX);
   LIBS.set_I4(leftArm.MOVE_MATRIX);
@@ -356,5 +361,6 @@ if (typeof body.tick === "function") {
 
   animate();
 }
+
 
 window.addEventListener("load", main);
