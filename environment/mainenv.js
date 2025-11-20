@@ -14,9 +14,8 @@ import { HisuianTyphlosion } from "../Hisuian-Typhlosion/HisuianTyphlosion.js";
 // Typhlosion
 import { BodyShape as TyBodyShape } from "../Typhlosion/body.js";
 import { HeadShape as TyHeadShape } from "../Typhlosion/head.js";
-import { ArmShape  as TyArmShape  } from "../Typhlosion/arms.js";
+import { ArmShape as TyArmShape } from "../Typhlosion/arms.js";
 import { LegsShape as TyLegsShape } from "../Typhlosion/legs.js";
-
 
 function main() {
   const CANVAS = document.getElementById("thisCanvas");
@@ -165,7 +164,6 @@ function main() {
   );
   htyphlosion.setup();
 
-  
   // === CREATE TYPHLOSION ===
   const ty_body = new TyBodyShape(
     GL,
@@ -228,10 +226,6 @@ function main() {
   ty_body.childs.push(ty_rightLeg);
   ty_body.childs.push(ty_leftLeg);
 
-  
-
-
-
   // === MATRICES ===
   const PROJMATRIX = LIBS.get_projection(
     40,
@@ -241,7 +235,7 @@ function main() {
   );
   const VIEWMATRIX = LIBS.get_I4();
 
-  // === CAMERA STATE ===
+  // === CAMERA STATE (Manual Control) ===
   let THETA = 0.0;
   let PHI = 0.25;
   let cameraVelocity = 0;
@@ -250,30 +244,71 @@ function main() {
   const maxSpeed = 0.03;
   const keys = { a: false, d: false };
 
-    // === TYPHLOSION ANIMATION STATE ===
-  let prevTimeSeconds = 0;
+  // --- SHOWCASE TIMELINE STATE ---
+  const showcaseDuration = 45.0; // Total durasi showcase
+  let isShowcaseActive = true;
+  let currentCameraZ = -120.0; // Untuk menyimpan Z kamera saat ini setelah intro
 
-  // posisi dasar Typhlosion 
+  // --- Animation Triggers ---
+  let isQuilavaCrawling = false;
+  let tyWalkTimeStart = -1; // -1 jika tidak berjalan
+  let tyIsWalking = false;
+  let tyWalkDirection = 1;
+  let tyWalkStepDistance = 5.0;
+  let tyWalkDuration = 2.0;
+
+  // Typhlosion standard state (untuk animasi lompat/jalan)
   let tyPosX = -6.5;
   let tyPosY = 4.5;
   let tyPosZ = 3.0;
-
-  let tyIsWalking = false;
-  let tyWalkTime = 0;
-  let tyTargetZ = tyPosZ;         
-  let tyWalkDirection = 1;        
-  const tyWalkStepDistance = 5.0; 
-  const tyWalkDuration = 2.0;     
-  const tyWalkSpeed = tyWalkStepDistance / tyWalkDuration;
-
-
-  let tyIsJumping = false;
   let tyJumpTime = 0;
+  let tyIsJumping = false;
   const tyJumpDuration = 0.8;
   const tyJumpHeight = 2.0;
-
   const tyBreathSpeed = 2.0;
 
+  // === GLOBAL TIME STATE FIX ===
+  let prevTimeSeconds = 0; // FIX: Inisialisasi ReferenceError
+
+  // === ANIMATION UTILITIES ===
+
+  const startQuilavaCrawl = () => {
+    if (!isQuilavaCrawling) {
+      quilava_body.toggleCrawlState();
+      quilava_body.childs.forEach((child) => {
+        if (child.toggleCrawlState) child.toggleCrawlState();
+      });
+      isQuilavaCrawling = true;
+    }
+  };
+
+  const stopQuilavaCrawl = () => {
+    if (isQuilavaCrawling) {
+      quilava_body.toggleCrawlState();
+      quilava_body.childs.forEach((child) => {
+        if (child.toggleCrawlState) child.toggleCrawlState();
+      });
+      isQuilavaCrawling = false;
+    }
+  };
+
+  const startTyphlosionWalk = (currentDirection) => {
+    // Current direction digunakan untuk menentukan apakah perlu membalik arah.
+    // Selama showcase, kita hanya perlu memicu langkah. Arah diatur oleh showcase logic.
+    if (!tyIsWalking) {
+      tyIsWalking = true;
+      tyWalkTimeStart = prevTimeSeconds;
+      tyWalkDirection = currentDirection;
+      tyWalkStepDistance = 5.0 * currentDirection;
+    }
+  };
+
+  const typhlosionJump = () => {
+    if (!tyIsJumping) {
+      tyIsJumping = true;
+      tyJumpTime = 0;
+    }
+  };
 
   // === KEYBOARD EVENTS ===
   window.addEventListener("keydown", (e) => {
@@ -283,44 +318,18 @@ function main() {
       THETA = 0;
       PHI = 0.3;
       cameraVelocity = 0;
+      isShowcaseActive = false; // Matikan showcase
     }
-    if (e.key === "c" || e.key === "C") {
-      quilava_body.toggleCrawlState();
-      quilava_body.childs.forEach((child) => {
-        if (child.toggleCrawlState) {
-          child.toggleCrawlState();
-        }
-      });
+    // Debug Controls (hanya aktif setelah showcase)
+    if (!isShowcaseActive) {
+      if (e.key === "c" || e.key === "C") startQuilavaCrawl();
+      if (e.key === "C" || e.key === "X") stopQuilavaCrawl(); // Tambah tombol untuk stop
+      if (e.key === "n" || e.key === "N") htyphlosion.startNod();
+      if (e.key === "m" || e.key === "M") htyphlosion.startShake();
+      if (e.key === " " || e.key === "Space") htyphlosion.startJump();
+      if (e.key === "2") startTyphlosionWalk(-1); // Manual walk trigger
+      if (e.key === "3") typhlosionJump(); // Manual jump trigger
     }
-
-    if (e.key === "n" || e.key === "N") {
-      htyphlosion.startNod();
-    }
-    if (e.key === "m" || e.key === "M") {
-      htyphlosion.startShake();
-    }
-    if (e.key === "Space" || e.key === " ") {
-      htyphlosion.startJump();
-      if (!tyIsJumping) {
-        tyIsJumping = true;
-        tyJumpTime = 0;
-      }
-    }
-      
-    if (e.key === "2") { // jalan 
-      if (!tyIsWalking) {
-        tyIsWalking = true;
-        tyWalkTime = 0;
-        // set target langkah
-        tyTargetZ = tyPosZ + tyWalkStepDistance * tyWalkDirection;
-        //maju mundur
-        tyWalkDirection *= -2;
-      }
-    }
-
-   
-
-
   });
   window.addEventListener("keyup", (e) => {
     if (e.key === "a" || e.key === "A") keys.a = false;
@@ -353,11 +362,183 @@ function main() {
     GL.viewport(0, 0, CANVAS.width, CANVAS.height);
     GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
 
-    if (keys.a) cameraVelocity -= rotateAccel;
-    if (keys.d) cameraVelocity += rotateAccel;
-    cameraVelocity *= rotateFriction;
-    cameraVelocity = Math.max(-maxSpeed, Math.min(maxSpeed, cameraVelocity));
-    THETA += cameraVelocity;
+    // Helper untuk interpolasi halus
+    const smoothstep = (edge0, edge1, x) => {
+      const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+      return t * t * (3 - 2 * t);
+    };
+
+    // Helper untuk fungsi interpolasi linear
+    const lerp = (a, b, t) => a + (b - a) * t;
+
+    // --- TIMELINE SHOWCASE ---
+    if (isShowcaseActive) {
+      const t = Math.min(timeInSeconds, showcaseDuration);
+
+      let startT, endT, progress;
+
+      // ====================================================================
+      // PHASE 1: OPENING & ENVIRONMENT INTRO (0s - 10s)
+      // Fokus ke tengah (z=0)
+      // ====================================================================
+
+      startT = 0.0;
+      endT = 10.0;
+      if (t < endT) {
+        progress = (t - startT) / (endT - startT);
+        console.log("start 360");
+        // Kamerah: Zoom In & Orbit Penuh (agar menghadap tombol)
+        currentCameraZ = lerp(-120.0, -30.0, smoothstep(0, 1, progress));
+        THETA = lerp(0.0, Math.PI * 3.5, progress); // Rotasi 1.75 putaran
+        PHI = lerp(0.1, 0.35, smoothstep(0, 1, progress));
+
+        // Pokeball: Open (Mulai 2s, Penuh 5s)
+        if (t > 2.0 && t < 5.0) {
+          isOpening = true;
+        } else if (t >= 5.0) {
+          isOpening = true;
+        } else {
+          isOpening = false;
+        }
+      }
+
+      // ====================================================================
+      // PHASE 2: TYPHLOSION FOCUS & WALK/JUMP (10s - 20s)
+      // ====================================================================
+
+      startT = 10.0;
+      endT = 20.0;
+      if (t >= startT && t < endT) {
+      console.log("start tp");
+
+        progress = smoothstep(0, 1, (t - startT) / (endT - startT));
+
+        // Kamera fokus ke Typhlosion (sudut pandang di sebelah kiri)
+        currentCameraZ = lerp(-30.0, -20.0, progress);
+        THETA = lerp(Math.PI * 3.5, Math.PI * 3.5 + Math.PI * 0.45, progress); // Orbit ke Typhlosion
+        PHI = lerp(0.35, 0.4, progress);
+
+        // Animasi: Typhlosion Walk (Start at 11s)
+        if (t > 11.0 && t < 15.0) {
+          if (!tyIsWalking) startTyphlosionWalk(-1); // Jalan ke belakang
+        } else if (t >= 15.0 && t < 17.0) {
+          tyIsWalking = false;
+          tyWalkTimeStart = -1;
+        }
+
+        // Animasi: Typhlosion Jump (Start at 17s)
+        if (t > 17.0 && t < 18.5) {
+          typhlosionJump();
+        }
+      }
+
+      // ====================================================================
+      // PHASE 3: HISUIAN TYPHLOSION FOCUS & NOD/SHAKE/JUMP (20s - 30s)
+      // ====================================================================
+
+      startT = 20.0;
+      endT = 30.0;
+      if (t >= startT && t < endT) {
+      console.log("start htp");
+
+        progress = smoothstep(0, 1, (t - startT) / (endT - startT));
+
+        // Kamera fokus ke Hisuian Typhlosion (posisi 6.5)
+        currentCameraZ = lerp(-20.0, -23.0, progress);
+        // THETA mengunci ke arah H-Typhlosion
+        THETA = lerp(
+          Math.PI * 3.5 + Math.PI * 0.45,
+          Math.PI * 3.5 - Math.PI * 0.45,
+          progress
+        );
+        PHI = lerp(0.4, 0.45, progress);
+
+        // Animasi: H-Typhlosion Nod (Start at 22s)
+        if (t > 22.0 && t < 24.0) htyphlosion.startNod();
+
+        // Animasi: H-Typhlosion Shake (Start at 25s)
+        if (t > 25.0 && t < 26.5) htyphlosion.startShake();
+
+        // Animasi: H-Typhlosion Jump (Start at 27.5s)
+        if (t > 27.5 && t < 29.0) htyphlosion.startJump();
+      }
+
+      // ====================================================================
+      // PHASE 4: QUILAVA FOCUS & CRAWL (30s - 40s)
+      // ====================================================================
+
+      startT = 30.0;
+      endT = 40.0;
+      if (t >= startT && t < endT) {
+      console.log("start q");
+
+        progress = smoothstep(0, 1, (t - startT) / (endT - startT));
+
+        // Kamera fokus ke Quilava (posisi 5, sudut pandang belakang)
+        currentCameraZ = lerp(-23.0, -20.0, progress);
+        // THETA mengunci ke arah Quilava
+        THETA = lerp(
+          Math.PI * 3.5 - Math.PI * 0.45,
+          Math.PI * 3.5 + Math.PI * 0.15,
+          progress
+        );
+        PHI = lerp(0.45, 0.5, progress);
+
+        // Animasi: Quilava Crawl (Start at 32s)
+        if (t > 32.0 && t < 38.0) {
+          startQuilavaCrawl();
+        } else {
+          stopQuilavaCrawl(); // Stop crawl saat keluar dari fase
+        }
+      }
+
+      // ====================================================================
+      // PHASE 5: ENDING & MANUAL CONTROL (40s - 45s)
+      // ====================================================================
+      startT = 40.0;
+      endT = 45.0;
+      if (t >= startT && t < endT) {
+      console.log("start end");
+
+        progress = smoothstep(0, 1, (t - startT) / (endT - startT));
+        // Transisi ke jarak manual dan sudut default
+        currentCameraZ = lerp(-20.0, -50.0, progress); // Mundur Jauh
+        THETA = lerp(Math.PI * 3.5 + Math.PI * 0.15, 4.0 * Math.PI, progress);
+        PHI = lerp(0.5, 0.25, progress);
+
+        // Pokeball: Close (Mulai 42s)
+        if (t > 42.0) {
+          isOpening = false;
+        }
+      }
+
+      // --- Menerapkan Transformasi Kamera ---
+      LIBS.set_I4(VIEWMATRIX);
+      LIBS.translateZ(VIEWMATRIX, currentCameraZ);
+      LIBS.rotateX(VIEWMATRIX, PHI);
+      LIBS.rotateY(VIEWMATRIX, THETA);
+
+      // Matikan showcase dan aktifkan kontrol manual
+      if (timeInSeconds >= showcaseDuration) {
+        isShowcaseActive = false;
+        // Set posisi awal manual
+        THETA = 4.0 * Math.PI;
+        PHI = 0.25;
+        currentCameraZ = -50.0;
+      }
+    } else {
+      // Logika kontrol A/D manual (aktif setelah showcase selesai)
+      if (keys.a) cameraVelocity -= rotateAccel;
+      if (keys.d) cameraVelocity += rotateAccel;
+      cameraVelocity *= rotateFriction;
+      cameraVelocity = Math.max(-maxSpeed, Math.min(maxSpeed, cameraVelocity));
+      THETA += cameraVelocity;
+
+      LIBS.set_I4(VIEWMATRIX);
+      LIBS.translateZ(VIEWMATRIX, currentCameraZ); // Gunakan Z terakhir
+      LIBS.rotateX(VIEWMATRIX, PHI);
+      LIBS.rotateY(VIEWMATRIX, THETA);
+    }
 
     if (isOpening && animationProgress < 1.0)
       animationProgress = Math.min(1.0, animationProgress + animationSpeed);
@@ -366,8 +547,8 @@ function main() {
 
     const currentOpenAngle = animationProgress * maxOpenAngle;
 
-    terrain.animate(time * 0.001); 
-    
+    terrain.animate(time * 0.001);
+
     // terrain.render(MOVEMATRIX);
 
     // === ANIMATE Typhlosion ===
@@ -394,22 +575,23 @@ function main() {
     // napas: selalu aktif
     const breath = Math.sin(timeInSeconds * tyBreathSpeed) * 0.4;
 
-   
-    // Logika Jalan
-    if (tyIsWalking) {
-      tyWalkTime += dt;
+    // Logika Jalan Typhlosion
+    let tyWalkSpeed = 5.0 / tyWalkDuration; // 5.0 adalah jarak langkah
+    if (tyIsWalking && tyWalkTimeStart !== -1) {
+      const walkTime = timeInSeconds - tyWalkTimeStart;
 
-      const direction = tyTargetZ > tyPosZ ? 1 : -1;
-      tyPosZ += tyWalkSpeed * dt * direction;
+      // Hitung posisi saat ini
+      const distanceMoved = walkTime * tyWalkSpeed;
+      // Gunakan tyPosX asli untuk menentukan posisi awal, lalu tambahkan pergerakan
+      tyPosX = -6.5 + tyWalkDirection * distanceMoved;
 
-      // kalau sudah mencapai target, stop
-      if (
-        (direction === 1 && tyPosZ >= tyTargetZ) ||
-        (direction === -1 && tyPosZ <= tyTargetZ)
-      ) {
-        tyPosZ = tyTargetZ;
+      // Kalau sudah mencapai langkah penuh, reset/stop
+      if (walkTime >= tyWalkDuration) {
+        tyPosX = -6.5 + tyWalkDirection * 5.0; // Pastikan posisi tepat di target
         tyIsWalking = false;
-        tyWalkTime = 0;
+        tyWalkTimeStart = -1; // Reset trigger
+        // Kembalikan ke posisi awal setelah showcase
+        if (!isShowcaseActive) tyPosX = -6.5;
       }
     }
 
@@ -421,7 +603,7 @@ function main() {
         tyIsJumping = false;
         tyJumpTime = 0;
       } else {
-        const phase = (tyJumpTime / tyJumpDuration) * Math.PI; 
+        const phase = (tyJumpTime / tyJumpDuration) * Math.PI;
         jumpOffset = Math.sin(phase) * tyJumpHeight;
       }
     }
@@ -458,12 +640,7 @@ function main() {
 
     // ----------------------------------------------------------
 
-
     // CAMERA
-    LIBS.set_I4(VIEWMATRIX);
-    LIBS.translateZ(VIEWMATRIX, -80);
-    LIBS.rotateX(VIEWMATRIX, PHI);
-    LIBS.rotateY(VIEWMATRIX, THETA);
 
     GL.uniformMatrix4fv(_Pmatrix, false, PROJMATRIX);
     GL.uniformMatrix4fv(_Vmatrix, false, VIEWMATRIX);
@@ -474,7 +651,6 @@ function main() {
         child.animate(timeInSeconds);
       }
     });
-
 
     if (typeof ty_body.tick === "function") {
       ty_body.tick(timeInSeconds);
@@ -519,7 +695,6 @@ function main() {
 
     // === TYPHLOSION ====
     const TYPHLOSION_MODEL_MATRIX = LIBS.get_I4();
-
 
     LIBS.translateX(TYPHLOSION_MODEL_MATRIX, tyPosX);
     LIBS.translateY(

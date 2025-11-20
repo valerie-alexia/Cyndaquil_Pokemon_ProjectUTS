@@ -249,11 +249,10 @@ export class BodyShape {
                 if (shadeLikeBody) {
                     if (z + zFrontBias >= 0) {
                         var yLit = y + yLightBias;
-                        r = 0.9 + yLit * 0.005;
-                        g = 0.8 + yLit * 0.01;
-                        bcol = 0.6 + yLit * 0.01;
+                        r = 0.98 + yLit * 0.005;
+                        g = 0.94 + yLit * 0.01;
+                        bcol = 0.76 + yLit * 0.01;
                     } else {
-                        // UPDATED COLOR
                         r = 0.25; g = 0.2; bcol = 0.3;
                     }
                 } else if (overrideColor) {
