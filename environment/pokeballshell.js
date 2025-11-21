@@ -9,7 +9,8 @@ export class PokeballShell {
     _MMatrix = null;
 
     topHalf = null;
-    staticParts = [];
+    topCap = null; // Tutup dalam merah (efek kopong)
+    staticParts = []; // Bagian statis (bawah, band, tombol)
 
     radius = 15.0;
     bandHeight = 0;
@@ -21,84 +22,74 @@ export class PokeballShell {
         this._color = _color;
         this._MMatrix = _MMatrix;
 
-        // Ukuran dasar bola
+        // === KONFIGURASI UKURAN ===
         this.radius = 15.0;
         this.bandHeight = this.radius * 0.15;
 
-        // Ukuran tombol
+        // Ukuran Tombol
         const buttonOuterRadius = this.radius * 0.25;
-        const buttonInnerRadius = this.radius * 0.18;
+        const buttonInnerRadius = this.radius * 0.15;
 
-        // Kedalaman tombol (base & top)
-        const buttonBaseDepth = this.bandHeight * 1.0;   // cukup tebal, tapi nggak terlalu
-        const buttonTopDepth  = this.bandHeight * 0.6;   // top lebih tipis
+        // Kedalaman Tombol (Dibuat tipis agar tidak tembus)
+        const buttonBaseDepth = this.bandHeight * 0.4;   // Hitam
+        const buttonTopDepth  = this.bandHeight * 0.15;  // Putih
 
-        // Warna
-        const redColor   = [0.8, 0.1, 0.1];
+        // === KONFIGURASI WARNA ===
+        const redColor = [0.8, 0.1, 0.1];
+        const brightRedColor = [1.0, 0.4, 0.4]; // Untuk gradasi tengah dalam
         const whiteColor = [0.95, 0.95, 0.95];
         const blackColor = [0.1, 0.1, 0.1];
+        const grayColor = [0.8, 0.8, 0.8];
 
         // ================== GEOMETRY BOLA ==================
 
-        // Top hemisphere (merah)
+        // 1. Top Hemisphere (Kulit Luar - Merah)
         const topHalfGeo = this.generateHemisphere(this.radius, 32, 32, false, redColor);
         const topMatrix = LIBS.get_I4();
         LIBS.translateY(topMatrix, this.bandHeight / 2);
         this.topHalf = this.createBufferObject(topHalfGeo.vertices, topHalfGeo.indices, topMatrix);
 
-        // Bottom hemisphere (putih)
+        // Tutup dalam (gradien merah)
+        const topCapGeo = this.generateDiskGradient(this.radius, 32, redColor, brightRedColor);
+        const topCapMatrix = LIBS.get_I4();
+        LIBS.translateY(topCapMatrix, this.bandHeight / 2);
+        // Rotate 180 derajat agar menghadap ke dalam
+        LIBS.rotateX(topCapMatrix, Math.PI); 
+        this.topCap = this.createBufferObject(topCapGeo.vertices, topCapGeo.indices, topCapMatrix);
+
+        // 3. Bottom Hemisphere (Putih)
         const bottomHalfGeo = this.generateHemisphere(this.radius, 32, 32, true, whiteColor);
         const bottomMatrix = LIBS.get_I4();
         LIBS.translateY(bottomMatrix, -this.bandHeight / 2);
-        this.staticParts.push(
-            this.createBufferObject(bottomHalfGeo.vertices, bottomHalfGeo.indices, bottomMatrix)
-        );
+        this.staticParts.push(this.createBufferObject(bottomHalfGeo.vertices, bottomHalfGeo.indices, bottomMatrix));
 
-        // Band tengah (hitam)
+        // 4. Band Tengah (Hitam)
         const bandGeo = this.generateCylinder(this.radius, this.radius, this.bandHeight, 32, 1, blackColor);
         const bandMatrix = LIBS.get_I4();
         this.staticParts.push(
             this.createBufferObject(bandGeo.vertices, bandGeo.indices, bandMatrix)
         );
-
         // ================== GEOMETRY TOMBOL ==================
+        
+        const rotationAngle = Math.PI / 2; // Rotasi agar menghadap depan (Z)
 
-        const rotationAngle = Math.PI / 2; // biar silinder berdiri ke arah Z
-
-        // Offset tombol: kita geser keluar sehingga seluruh silinder ada di depan permukaan bola
-        // Permukaan bola di depan = this.radius
-        const buttonBaseOffset = this.radius + buttonBaseDepth / 2 + 0.02; // +0.02 biar aman dari z-fighting
-        const buttonTopOffset  = buttonBaseOffset + 0.05;                  // top sedikit lebih maju
-
-        // Base tombol (hitam, outer ring)
-        const buttonBaseGeo = this.generateClosedCylinder(
-            buttonOuterRadius,
-            buttonOuterRadius,
-            buttonBaseDepth,
-            32,
-            blackColor
-        );
+        // Layer 1: Base Hitam
+        // Posisi: Menempel di kulit bola
+        const baseZ = this.radius + buttonBaseDepth / 2;
+        const buttonBaseGeo = this.generateClosedCylinder(buttonOuterRadius, buttonOuterRadius, buttonBaseDepth, 32, blackColor);
         const buttonBaseMatrix = LIBS.get_I4();
-        LIBS.translateZ(buttonBaseMatrix, buttonBaseOffset);
+        LIBS.translateZ(buttonBaseMatrix, baseZ);
         LIBS.rotateX(buttonBaseMatrix, rotationAngle);
-        this.staticParts.push(
-            this.createBufferObject(buttonBaseGeo.vertices, buttonBaseGeo.indices, buttonBaseMatrix)
-        );
+        this.staticParts.push(this.createBufferObject(buttonBaseGeo.vertices, buttonBaseGeo.indices, buttonBaseMatrix));
 
-        // Top tombol (putih, inner circle)
-        const buttonTopGeo = this.generateClosedCylinder(
-            buttonInnerRadius,
-            buttonInnerRadius,
-            buttonTopDepth,
-            32,
-            whiteColor
-        );
+        // Layer 2: Top Putih
+        // Posisi: Menempel di atas Base Hitam (Offset maju)
+        const topZ = this.radius + buttonBaseDepth + buttonTopDepth / 2;
+        const buttonTopGeo = this.generateClosedCylinder(buttonInnerRadius, buttonInnerRadius, buttonTopDepth, 32, whiteColor);
         const buttonTopMatrix = LIBS.get_I4();
-        LIBS.translateZ(buttonTopMatrix, buttonTopOffset);
+        LIBS.translateZ(buttonTopMatrix, topZ);
         LIBS.rotateX(buttonTopMatrix, rotationAngle);
-        this.staticParts.push(
-            this.createBufferObject(buttonTopGeo.vertices, buttonTopGeo.indices, buttonTopMatrix)
-        );
+        this.staticParts.push(this.createBufferObject(buttonTopGeo.vertices, buttonTopGeo.indices, buttonTopMatrix));
     }
 
     createBufferObject(vertices, indices, localMatrix) {
@@ -123,19 +114,20 @@ export class PokeballShell {
         };
 
         setupObj(this.topHalf);
+        setupObj(this.topCap); // Setup tutup dalam
         this.staticParts.forEach(setupObj);
     }
 
     render(PARENT_MATRIX, openAngle) {
-        // Render bagian yang statis (bottom, band, tombol, dll)
+        // 1. Render Bagian Statis (Bawah, Band, Tombol)
         this.staticParts.forEach((obj) => {
             const M = LIBS.multiply(PARENT_MATRIX, obj.localMatrix);
             this.GL.uniformMatrix4fv(this._MMatrix, false, M);
             this.bindAndDraw(obj);
         });
 
-        // Top half dianimasikan (buka / tutup)
-        this.GL.disable(this.GL.CULL_FACE);
+        // 2. Render Bagian Animasi (Top Half & Top Cap)
+        // this.GL.disable(this.GL.CULL_FACE); // Opsional: Matikan culling jika perlu
 
         const pivotX = 0;
         const pivotY = this.bandHeight / 2;
@@ -143,6 +135,7 @@ export class PokeballShell {
 
         const M_local_closed = this.topHalf.localMatrix;
 
+        // Kalkulasi Matrix Animasi (Rotasi Pivot)
         let M_pivot_inv = LIBS.translate(-pivotX, -pivotY, -pivotZ);
         let M_rot = LIBS.get_I4();
         LIBS.rotateX(M_rot, -openAngle);
@@ -154,18 +147,24 @@ export class PokeballShell {
         M_anim = LIBS.multiply(M_anim, M_local_closed);
 
         const M_final = LIBS.multiply(PARENT_MATRIX, M_anim);
+        
+        // Render Kulit Luar
+        this.GL.enable(this.GL.CULL_FACE); 
         this.GL.uniformMatrix4fv(this._MMatrix, false, M_final);
         this.bindAndDraw(this.topHalf);
+
+        // Render Tutup Dalam (Gerakan sinkron dengan kulit luar)
+        this.GL.disable(this.GL.CULL_FACE);
+        this.GL.uniformMatrix4fv(this._MMatrix, false, M_final);
+        this.bindAndDraw(this.topCap);
 
         this.GL.enable(this.GL.CULL_FACE);
     }
 
     bindAndDraw(obj) {
         this.GL.bindBuffer(this.GL.ARRAY_BUFFER, obj.vertexBuffer);
-        // 3 posisi + 3 warna = 6 float → stride 24 byte
         this.GL.vertexAttribPointer(this._position, 3, this.GL.FLOAT, false, 24, 0);
         this.GL.vertexAttribPointer(this._color, 3, this.GL.FLOAT, false, 24, 12);
-
         this.GL.bindBuffer(this.GL.ELEMENT_ARRAY_BUFFER, obj.indexBuffer);
         this.GL.drawElements(this.GL.TRIANGLES, obj.indices.length, this.GL.UNSIGNED_SHORT, 0);
     }
@@ -175,7 +174,6 @@ export class PokeballShell {
     generateHemisphere(radius, stacks, slices, isBottom, color) {
         const vertices = [];
         const indices = [];
-
         const latStart = isBottom ? -Math.PI / 2 : 0;
         const latEnd   = isBottom ? 0 : Math.PI / 2;
 
@@ -200,10 +198,86 @@ export class PokeballShell {
                 indices.push(second, second + 1, first + 1);
             }
         }
+        return { vertices, indices };
+    }
+
+    // Cylinder Tertutup (Solid) - Winding Order Diperbaiki
+    generateClosedCylinder(topRadius, bottomRadius, height, segments, color) {
+        const vertices = [];
+        const indices = [];
+
+        // Top Center
+        vertices.push(0, height / 2, 0, ...color);
+        // Top Ring
+        for (let i = 0; i <= segments; i++) {
+            const angle = (i / segments) * 2 * Math.PI;
+            const x = topRadius * Math.cos(angle);
+            const z = topRadius * Math.sin(angle);
+            vertices.push(x, height / 2, z, ...color);
+        }
+
+        const bottomCenterIndex = vertices.length / 6; 
+        // Bottom Center
+        vertices.push(0, -height / 2, 0, ...color);
+        // Bottom Ring
+        for (let i = 0; i <= segments; i++) {
+            const angle = (i / segments) * 2 * Math.PI;
+            const x = bottomRadius * Math.cos(angle);
+            const z = bottomRadius * Math.sin(angle);
+            vertices.push(x, -height / 2, z, ...color);
+        }
+
+        // Indices Setup
+        
+        // 1. Top Cap (Fan)
+        for (let i = 1; i <= segments; i++) {
+            indices.push(0, i + 1, i); 
+        }
+
+        // 2. Bottom Cap (Fan)
+        const startBottom = bottomCenterIndex + 1;
+        for (let i = 0; i < segments; i++) {
+            indices.push(bottomCenterIndex, startBottom + i + 1, startBottom + i);
+        }
+
+        // 3. Side Faces (Triangle Strip Logic)
+        for (let i = 0; i < segments; i++) {
+            const top1 = 1 + i;
+            const top2 = 1 + i + 1;
+            const bot1 = startBottom + i;
+            const bot2 = startBottom + i + 1;
+            indices.push(top1, top2, bot1);
+            indices.push(bot1, top2, bot2);
+        }
 
         return { vertices, indices };
     }
 
+    // Disk Datar dengan Gradasi Warna (Untuk Tutup Dalam)
+    generateDiskGradient(radius, segments, edgeColor, centerColor) {
+        const vertices = [];
+        const indices = [];
+
+        // Center vertex -> Warna Terang
+        vertices.push(0, 0, 0, ...centerColor);
+
+        // Rim vertices -> Warna Gelap (Normal)
+        for (let i = 0; i <= segments; i++) {
+            const angle = (i / segments) * 2 * Math.PI;
+            const x = radius * Math.cos(angle);
+            const z = radius * Math.sin(angle);
+            vertices.push(x, 0, z, ...edgeColor);
+        }
+
+        // Indices (Fan)
+        for (let i = 1; i <= segments; i++) {
+            indices.push(0, i + 1, i); 
+        }
+
+        return { vertices, indices };
+    }
+    
+    // Backward compatibility (redirect ke generateClosedCylinder)
     generateCylinder(topRadius, bottomRadius, height, radialSubdiv, heightSubdiv, color) {
         const vertices = [];
         const indices = [];
@@ -227,59 +301,6 @@ export class PokeballShell {
                 indices.push(first, second, first + 1);
                 indices.push(second, second + 1, first + 1);
             }
-        }
-
-        return { vertices, indices };
-    }
-
-    generateClosedCylinder(topRadius, bottomRadius, height, segments, color) {
-        const vertices = [];
-        const indices = [];
-
-        // Top center
-        vertices.push(0, height / 2, 0, ...color);
-
-        // Top ring
-        for (let i = 0; i <= segments; i++) {
-            const angle = (i / segments) * 2 * Math.PI;
-            const x = topRadius * Math.cos(angle);
-            const z = topRadius * Math.sin(angle);
-            vertices.push(x, height / 2, z, ...color);
-        }
-
-        // Bottom center index (dalam "vertex count", bukan float)
-        const bottomCenterIndex = vertices.length / 6;
-
-        // Bottom center
-        vertices.push(0, -height / 2, 0, ...color);
-
-        // Bottom ring
-        for (let i = 0; i <= segments; i++) {
-            const angle = (i / segments) * 2 * Math.PI;
-            const x = bottomRadius * Math.cos(angle);
-            const z = bottomRadius * Math.sin(angle);
-            vertices.push(x, -height / 2, z, ...color);
-        }
-
-        // Top fan
-        for (let i = 1; i <= segments; i++) {
-            indices.push(0, i, i + 1);
-        }
-
-        // Bottom fan
-        const startBottom = bottomCenterIndex + 1;
-        for (let i = 0; i < segments; i++) {
-            indices.push(bottomCenterIndex, startBottom + i + 1, startBottom + i);
-        }
-
-        // Side faces
-        for (let i = 0; i < segments; i++) {
-            const top1 = 1 + i;
-            const top2 = 1 + i + 1;
-            const bot1 = startBottom + i;
-            const bot2 = startBottom + i + 1;
-            indices.push(top1, bot1, top2);
-            indices.push(bot1, bot2, top2);
         }
 
         return { vertices, indices };

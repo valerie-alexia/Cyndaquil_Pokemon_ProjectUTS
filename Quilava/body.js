@@ -362,7 +362,7 @@ export class BodyShape {
                 var z = c * Math.sin(v) * Math.cos(u);
                 let r, g, bcol;
                 if (z >= 0) {
-                    r = 1 + y * 0.002;
+                    r = 0.98 + y * 0.002;
                     g = 0.94 + y * 0.002;
                     bcol = 0.76 + y * 0.002; // cream
                 } else {

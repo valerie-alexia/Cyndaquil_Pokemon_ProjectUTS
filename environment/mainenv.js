@@ -319,7 +319,7 @@ function main() {
     40,
     CANVAS.width / CANVAS.height,
     1,
-    100
+    500
   );
   const VIEWMATRIX = LIBS.get_I4();
 
@@ -347,6 +347,7 @@ function main() {
 
   // Typhlosion standard state (untuk animasi lompat/jalan)
   let tyPosX = -6.5;
+  let tyBaseX = -6.5;
   let tyPosY = 4.5;
   let tyPosZ = 3.0;
   let tyJumpTime = 0;
@@ -411,7 +412,7 @@ function main() {
     // Debug Controls (hanya aktif setelah showcase)
     if (!isShowcaseActive) {
       if (e.key === "c" || e.key === "C") startQuilavaCrawl();
-      if (e.key === "C" || e.key === "X") stopQuilavaCrawl(); // Tambah tombol untuk stop
+      if (e.key === "c" || e.key === "C") stopQuilavaCrawl(); // Tambah tombol untuk stop
       if (e.key === "n" || e.key === "N") htyphlosion.startNod();
       if (e.key === "m" || e.key === "M") htyphlosion.startShake();
       if (e.key === " " || e.key === "Space") htyphlosion.startJump();
@@ -503,8 +504,8 @@ function main() {
         progress = (t - startT) / (endT - startT);
         console.log("start 360");
         // Kamerah: Zoom In & Orbit Penuh (agar menghadap tombol)
-        currentCameraZ = lerp(-120.0, -30.0, smoothstep(0, 1, progress));
-        THETA = lerp(0.0, Math.PI * 3.5, progress); // Rotasi 1.75 putaran
+        currentCameraZ = lerp(-120.0, -40.0, smoothstep(0, 1, progress));
+        THETA = lerp(0.0, Math.PI * 4, progress); // Rotasi 1.75 putaran
         PHI = lerp(0.1, 0.35, smoothstep(0, 1, progress));
 
         // Pokeball: Open (Mulai 2s, Penuh 5s)
@@ -529,16 +530,21 @@ function main() {
         progress = smoothstep(0, 1, (t - startT) / (endT - startT));
 
         // Kamera fokus ke Typhlosion (sudut pandang di sebelah kiri)
-        currentCameraZ = lerp(-30.0, -20.0, progress);
-        THETA = lerp(Math.PI * 3.5, Math.PI * 3.5 + Math.PI * 0.45, progress); // Orbit ke Typhlosion
+        currentCameraZ = lerp(-40.0, -40.0, progress);
+        THETA = lerp(Math.PI * 4, Math.PI * 4 + Math.PI * 0.45, progress); // Orbit ke Typhlosion
         PHI = lerp(0.35, 0.4, progress);
 
         // Animasi: Typhlosion Walk (Start at 11s)
-        if (t > 11.0 && t < 15.0) {
-          if (!tyIsWalking) startTyphlosionWalk(-1); // Jalan ke belakang
-        } else if (t >= 15.0 && t < 17.0) {
-          tyIsWalking = false;
-          tyWalkTimeStart = -1;
+        if (t > 11.0 && t < 11.1 && !tyIsWalking) {
+           tyBaseX = -6.5;       // Set titik awal
+           startTyphlosionWalk(-1); // Arah -1 (Kiri)
+        }
+
+        // 2. JALAN PULANG (Ke Kanan) - Mulai detik 13.5
+        // Kita beri jeda sedikit setelah jalan pertama selesai (durasi jalan default 2.0s)
+        if (t > 13.5 && t < 13.6 && !tyIsWalking) {
+           tyBaseX = -11.5;      // Set titik awal (Posisi ujung kiri: -6.5 + (-1 * 5.0))
+           startTyphlosionWalk(1);  // Arah 1 (Kanan/Balik)
         }
 
         // Animasi: Typhlosion Jump (Start at 17s)
@@ -559,11 +565,11 @@ function main() {
         progress = smoothstep(0, 1, (t - startT) / (endT - startT));
 
         // Kamera fokus ke Hisuian Typhlosion (posisi 6.5)
-        currentCameraZ = lerp(-20.0, -23.0, progress);
+        currentCameraZ = lerp(-40.0, -40.0, progress);
         // THETA mengunci ke arah H-Typhlosion
         THETA = lerp(
-          Math.PI * 3.5 + Math.PI * 0.45,
-          Math.PI * 3.5 - Math.PI * 0.45,
+          Math.PI * 4 + Math.PI * 0.45,
+          Math.PI * 4 - Math.PI * 0.45,
           progress
         );
         PHI = lerp(0.4, 0.45, progress);
@@ -590,11 +596,11 @@ function main() {
         progress = smoothstep(0, 1, (t - startT) / (endT - startT));
 
         // Kamera fokus ke Quilava (posisi 5, sudut pandang belakang)
-        currentCameraZ = lerp(-23.0, -20.0, progress);
+        currentCameraZ = lerp(-40.0, -40.0, progress);
         // THETA mengunci ke arah Quilava
         THETA = lerp(
-          Math.PI * 3.5 - Math.PI * 0.45,
-          Math.PI * 3.5 + Math.PI * 0.15,
+          Math.PI * 4 - Math.PI * 0.45,
+          Math.PI * 4 + Math.PI * 0.15,
           progress
         );
         PHI = lerp(0.45, 0.5, progress);
@@ -617,8 +623,8 @@ function main() {
 
         progress = smoothstep(0, 1, (t - startT) / (endT - startT));
         // Transisi ke jarak manual dan sudut default
-        currentCameraZ = lerp(-20.0, -50.0, progress); // Mundur Jauh
-        THETA = lerp(Math.PI * 3.5 + Math.PI * 0.15, 4.0 * Math.PI, progress);
+        currentCameraZ = lerp(-40.0, -50.0, progress); // Mundur Jauh
+        THETA = lerp(Math.PI * 4 + Math.PI * 0.15, 4.0 * Math.PI, progress);
         PHI = lerp(0.5, 0.25, progress);
 
         // Pokeball: Close (Mulai 42s)
@@ -698,15 +704,18 @@ function main() {
       // Hitung posisi saat ini
       const distanceMoved = walkTime * tyWalkSpeed;
       // Gunakan tyPosX asli untuk menentukan posisi awal, lalu tambahkan pergerakan
-      tyPosX = -6.5 + tyWalkDirection * distanceMoved;
+      tyPosX = tyBaseX + tyWalkDirection * distanceMoved;
 
       // Kalau sudah mencapai langkah penuh, reset/stop
       if (walkTime >= tyWalkDuration) {
-        tyPosX = -6.5 + tyWalkDirection * 5.0; // Pastikan posisi tepat di target
+        tyPosX = tyBaseX + tyWalkDirection * 5.0; // Pastikan posisi tepat di target
         tyIsWalking = false;
         tyWalkTimeStart = -1; // Reset trigger
         // Kembalikan ke posisi awal setelah showcase
-        if (!isShowcaseActive) tyPosX = -6.5;
+        if (!isShowcaseActive) {
+          tyPosX = -6.5;
+          tyBaseX = -6.5;
+        }
       }
     }
 
