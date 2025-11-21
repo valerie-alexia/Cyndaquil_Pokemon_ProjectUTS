@@ -350,6 +350,8 @@ function main() {
   let tyBaseX = -6.5;
   let tyPosY = 4.5;
   let tyPosZ = 3.0;
+  let tyBaseZ = 3.0;  
+
   let tyJumpTime = 0;
   let tyIsJumping = false;
   const tyJumpDuration = 0.8;
@@ -534,16 +536,16 @@ function main() {
         THETA = lerp(Math.PI * 4, Math.PI * 4 + Math.PI * 0.45, progress); // Orbit ke Typhlosion
         PHI = lerp(0.35, 0.4, progress);
 
-        // Animasi: Typhlosion Walk (Start at 11s)
+        // Animasi: Typhlosion Walk 
         if (t > 11.0 && t < 11.1 && !tyIsWalking) {
-           tyBaseX = -6.5;       // Set titik awal
-           startTyphlosionWalk(-1); // Arah -1 (Kiri)
+           tyBaseZ = tyPosZ;       
+           startTyphlosionWalk(-1); 
         }
 
         // 2. JALAN PULANG (Ke Kanan) - Mulai detik 13.5
         // Kita beri jeda sedikit setelah jalan pertama selesai (durasi jalan default 2.0s)
         if (t > 13.5 && t < 13.6 && !tyIsWalking) {
-           tyBaseX = -11.5;      // Set titik awal (Posisi ujung kiri: -6.5 + (-1 * 5.0))
+           tyBaseZ = tyPosZ;      // Set titik awal (Posisi ujung kiri: -6.5 + (-1 * 5.0))
            startTyphlosionWalk(1);  // Arah 1 (Kanan/Balik)
         }
 
@@ -697,27 +699,29 @@ function main() {
     const breath = Math.sin(timeInSeconds * tyBreathSpeed) * 0.4;
 
     // Logika Jalan Typhlosion
-    let tyWalkSpeed = 5.0 / tyWalkDuration; // 5.0 adalah jarak langkah
+    let tyWalkSpeed = 5.0 / tyWalkDuration; // 5.0 = jarak langkah
     if (tyIsWalking && tyWalkTimeStart !== -1) {
       const walkTime = timeInSeconds - tyWalkTimeStart;
 
-      // Hitung posisi saat ini
       const distanceMoved = walkTime * tyWalkSpeed;
-      // Gunakan tyPosX asli untuk menentukan posisi awal, lalu tambahkan pergerakan
-      tyPosX = tyBaseX + tyWalkDirection * distanceMoved;
+
+      // 🔁 GERAK DI Z, BUKAN X
+      tyPosZ = tyBaseZ + tyWalkDirection * distanceMoved;
 
       // Kalau sudah mencapai langkah penuh, reset/stop
       if (walkTime >= tyWalkDuration) {
-        tyPosX = tyBaseX + tyWalkDirection * 5.0; // Pastikan posisi tepat di target
+        tyPosZ = tyBaseZ + tyWalkDirection * 5.0; // posisi akhir tepat
         tyIsWalking = false;
-        tyWalkTimeStart = -1; // Reset trigger
-        // Kembalikan ke posisi awal setelah showcase
+        tyWalkTimeStart = -1;
+
+        // Kalau mau di-reset ke posisi awal saat manual
         if (!isShowcaseActive) {
-          tyPosX = -6.5;
-          tyBaseX = -6.5;
+          tyPosZ = 3.0;
+          tyBaseZ = 3.0;
         }
       }
     }
+
 
     // logika lompat
     let jumpOffset = 0;
