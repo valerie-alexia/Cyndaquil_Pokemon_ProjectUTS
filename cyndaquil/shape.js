@@ -1,3 +1,6 @@
+import { LIBS_CYNDAQUIL as LIBS } from "../environment/libs2.js"; // <-- Ubah import ini
+import { mat4, vec3 } from "https://cdn.jsdelivr.net/npm/gl-matrix@3.4.3/esm/index.js";
+
 export class Shape {
    GL = null;
    SHADER_PROGRAM = null;
@@ -100,6 +103,3 @@ export class Shape {
        this.childs.forEach(child => child.render(MODEL_MATRIX));
    }
 }
-
-
-

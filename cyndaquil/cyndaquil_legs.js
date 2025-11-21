@@ -1,8 +1,9 @@
+import { LIBS_CYNDAQUIL as LIBS } from "../environment/libs2.js";
 import { Shape } from "./shape.js";
 import { mat4 } from "https://cdn.jsdelivr.net/npm/gl-matrix@3.4.3/esm/index.js";
 
 
-const X_SHIFT_ALL = -6.0;
+const X_SHIFT_ALL = 3.0;
 const GL_TRIANGLES = 4;
 
 
@@ -15,16 +16,16 @@ export class LegsShape extends Shape {
        const SCALE = 0.8;
 
 
-       const Y_OFFSET = -1.8;
-       const X_OFFSET = 4.7;
-       const Z_OFFSET = 1.9;
-
+       var Y_OFFSET = 2.0;
+       var X_OFFSET = -0.5;
+       var Z_OFFSET = 1.9;
+       const DEPTH_OFFSET = -3.2;
 
        LIBS.set_position(
            this.POSITION_MATRIX,
            X_SHIFT_ALL + X_OFFSET,
            Y_OFFSET,
-           Z_OFFSET * side
+           (Z_OFFSET * side)+DEPTH_OFFSET
        );
 
 
@@ -189,7 +190,3 @@ export class LegsShape extends Shape {
        this.addObject(geo.vertices, faces, LIBS.get_I4(), GL_TRIANGLES);
    }
 }
-
-
-
-

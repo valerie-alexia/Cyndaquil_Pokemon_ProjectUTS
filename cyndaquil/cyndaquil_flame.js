@@ -1,8 +1,9 @@
+import { LIBS_CYNDAQUIL as LIBS } from "../environment/libs2.js";
 import { Shape } from "./shape.js";
 import { mat4, vec3 } from "https://cdn.jsdelivr.net/npm/gl-matrix@3.4.3/esm/index.js";
 
 
-const X_SHIFT_ALL = -6.0;
+const X_SHIFT_ALL = 0.0;
 const GL_TRIANGLES = 4;
 
 
@@ -12,9 +13,9 @@ export class FlameShape extends Shape {
        LIBS.set_I4(this.POSITION_MATRIX);
 
 
-       const X_OFFSET = -0.5;
-       const Y_OFFSET = -3.6;
-       const Z_OFFSET = 0.0;
+       const X_OFFSET = 1.5;
+       const Y_OFFSET = 3.2;
+       const Z_OFFSET = -2.5;
 
 
        LIBS.set_position(this.POSITION_MATRIX, X_SHIFT_ALL + X_OFFSET, Y_OFFSET, Z_OFFSET);
@@ -96,9 +97,3 @@ export class FlameShape extends Shape {
        this.addObject(geo.vertices, faces, LIBS.get_I4(), GL_TRIANGLES);
    }
 }
-
-
-
-
-
-

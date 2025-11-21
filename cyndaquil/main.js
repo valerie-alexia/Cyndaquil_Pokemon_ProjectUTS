@@ -313,7 +313,6 @@ function main() {
            isJumping = true;
            jumpTime = 0;
 
-
            flameScaleTarget = FLAME_SCALE_MIN;
            e.preventDefault();
       
@@ -426,5 +425,3 @@ function main() {
    });
 }
 window.addEventListener("load", main);
-
-

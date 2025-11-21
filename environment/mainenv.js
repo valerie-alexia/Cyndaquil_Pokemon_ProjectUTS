@@ -3,11 +3,21 @@ import { LIBS } from "./libs.js";
 import { PokeballShell } from "./pokeballshell.js";
 import { Terrain } from "./terrain.js";
 
+// Import LIBS untuk Cyndaquil
+import { LIBS_CYNDAQUIL } from "./libs2.js";
+
 // QUILAVA IMPORTS
 import { HeadShape } from "../Quilava/head.js";
 import { BodyShape } from "../Quilava/body.js";
 import { ArmShape } from "../Quilava/arms.js";
 import { LegsShape } from "../Quilava/legs.js";
+
+// CYNDAQUIL IMPORTS 
+import { HeadShape as CyndaquilHead } from "../cyndaquil/cyndaquil_head.js";
+import { BodyShape as CyndaquilBody } from "../cyndaquil/cyndaquil_body.js";
+import { ArmsShape as CyndaquilArm } from "../cyndaquil/cyndaquil_arms.js";
+import { LegsShape as CyndaquilLegs } from "../cyndaquil/cyndaquil_legs.js";
+import { FlameShape as CyndaquilFlame } from "../cyndaquil/cyndaquil_flame.js"; 
 
 import { HisuianTyphlosion } from "../Hisuian-Typhlosion/HisuianTyphlosion.js";
 
@@ -17,10 +27,46 @@ import { HeadShape as TyHeadShape } from "../Typhlosion/head.js";
 import { ArmShape as TyArmShape } from "../Typhlosion/arms.js";
 import { LegsShape as TyLegsShape } from "../Typhlosion/legs.js";
 
+// === VARIABEL GLOBAL CYNDAQUIL 
+let cyndaquil_body = null;
+let cyndaquil_head = null;
+let cyndaquil_rightArm = null;
+let cyndaquil_leftArm = null;
+let cyndaquil_rightLeg = null;
+let cyndaquil_leftLeg = null;
+let cyndaquil_flame = null;
+
+let cyndaquil_isJumping = false;
+let cyndaquil_jumpTime = 0;
+let cyndaquil_flameScaleTarget = 1.0;
+let cyndaquil_currentFlameScale = 1.0;
+const cyndaquil_manualScaleTarget = 1.0;  
+let cyndaquil_currentHeadRotationY = 0;
+let cyndaquil_targetHeadRotationY = 0;
+
+// Konstanta Cyndaquil Animation
+const JUMP_DURATION = 30;
+const JUMP_HEIGHT = 5.0;
+const FLAME_LERP_SPEED = 0.15;
+const BREATHING_SPEED = 4.0;
+const SUBTLE_BOB_AMPLITUDE = 0.1;
+const LERP_SPEED = 0.1;
+const EPSILON = 0.005;
+const CYNDAQUIL_WALK_SPEED = 5.0;
+const CYNDAQUIL_LIMB_ANGLE_MULTIPLIER = 0.7;
+const MAX_HEAD_TURN = Math.PI / 6.0;
+
 function main() {
   const CANVAS = document.getElementById("thisCanvas");
   CANVAS.width = window.innerWidth;
   CANVAS.height = window.innerHeight;
+
+  // START PERBAIKAN KUALITAS GAMBAR
+  const DPR = window.devicePixelRatio || 1; // Mendapatkan rasio piksel
+  CANVAS.width = window.innerWidth * DPR; // Set resolusi INTERNAL
+  CANVAS.height = window.innerHeight * DPR; // Set resolusi INTERNAL
+  CANVAS.style.width = window.innerWidth + "px"; // Set lebar tampilan CSS
+  CANVAS.style.height = window.innerHeight + "px"; // Set tinggi tampilan CSS
 
   const GL = CANVAS.getContext("webgl", { antialias: true });
   if (!GL) {
@@ -226,6 +272,48 @@ function main() {
   ty_body.childs.push(ty_rightLeg);
   ty_body.childs.push(ty_leftLeg);
 
+  // === CYNDAQUIL 
+  cyndaquil_body = new CyndaquilBody(GL, SHADER_PROGRAM, _position, _color, _Mmatrix);
+  cyndaquil_head = new CyndaquilHead(GL, SHADER_PROGRAM, _position, _color, _Mmatrix);
+  cyndaquil_rightArm = new CyndaquilArm(GL, SHADER_PROGRAM, _position, _color, _Mmatrix, +1);
+  cyndaquil_leftArm = new CyndaquilArm(GL, SHADER_PROGRAM, _position, _color, _Mmatrix, -1);
+  cyndaquil_leftLeg = new CyndaquilLegs(GL, SHADER_PROGRAM, _position, _color, _Mmatrix, +1);
+  cyndaquil_rightLeg = new CyndaquilLegs(GL, SHADER_PROGRAM, _position, _color, _Mmatrix, -1);
+  cyndaquil_flame = new CyndaquilFlame(GL, SHADER_PROGRAM, _position, _color, _Mmatrix);
+
+  // --- CYNDAQUIL RELATIVE POSITIONING ---
+  LIBS.translateY(cyndaquil_head.POSITION_MATRIX, -0.8);
+  LIBS.translateX(cyndaquil_head.POSITION_MATRIX, 7.0); 
+
+  const FLAME_STATIC_Z = -0.4;
+  LIBS.translateY(cyndaquil_flame.POSITION_MATRIX, -1.2);
+  LIBS.translateX(cyndaquil_flame.POSITION_MATRIX, 3.2);
+  LIBS.translateZ(cyndaquil_flame.POSITION_MATRIX, FLAME_STATIC_Z);
+  const FLAME_TILT_RIGHT = 30 * Math.PI / 180;
+  LIBS.rotateY(cyndaquil_flame.POSITION_MATRIX, FLAME_TILT_RIGHT); 
+
+  const ARM_LIFT = 2.0;
+  const ARM_FORWARD = 4.0;
+  LIBS.translateY(cyndaquil_rightArm.POSITION_MATRIX, ARM_LIFT);
+  LIBS.translateY(cyndaquil_leftArm.POSITION_MATRIX, ARM_LIFT);
+  LIBS.translateX(cyndaquil_rightArm.POSITION_MATRIX, ARM_FORWARD);
+  LIBS.translateX(cyndaquil_leftArm.POSITION_MATRIX, ARM_FORWARD);
+
+  // Setup Cyndaquil
+  cyndaquil_body.setup();
+  cyndaquil_head.setup();
+  cyndaquil_rightArm.setup();
+  cyndaquil_leftArm.setup();
+  cyndaquil_leftLeg.setup();
+  cyndaquil_rightLeg.setup();
+  cyndaquil_flame.setup();
+
+  // Build Cyndaquil Hierarchy
+  cyndaquil_body.childs.push(cyndaquil_head);
+  cyndaquil_body.childs.push(cyndaquil_rightArm);
+  cyndaquil_body.childs.push(cyndaquil_leftArm);
+  cyndaquil_body.childs.push(cyndaquil_flame);
+
   // === MATRICES ===
   const PROJMATRIX = LIBS.get_projection(
     40,
@@ -329,6 +417,33 @@ function main() {
       if (e.key === " " || e.key === "Space") htyphlosion.startJump();
       if (e.key === "2") startTyphlosionWalk(-1); // Manual walk trigger
       if (e.key === "3") typhlosionJump(); // Manual jump trigger
+
+      // CYNDAQUIL KEY EVENTS
+        const key = (e.key || "").toLowerCase();
+    
+        // Head Turn (J, L, I tetap sama)
+        if (key === 'j') { cyndaquil_targetHeadRotationY = -MAX_HEAD_TURN; e.preventDefault();} 
+        else if (key === 'l') { cyndaquil_targetHeadRotationY = MAX_HEAD_TURN; e.preventDefault();} 
+        else if (key === 'i') { cyndaquil_targetHeadRotationY = 0; e.preventDefault();}
+
+      // Jump 
+        else if (key === 'h' && !cyndaquil_isJumping) { // <-- Tombol 'H' untuk Jump
+            cyndaquil_isJumping = true;
+            cyndaquil_jumpTime = 0;
+            cyndaquil_flameScaleTarget = 0.0;
+            e.preventDefault();
+        }
+        
+        // Flame Scaling (Ganti tombol lama dengan 'K')
+        else if (key === 'k') { // <-- Tombol 'K' untuk Flame Scaling
+            // Ini adalah logika untuk toggle scaling (misalnya, scale up/down)
+            if (cyndaquil_flameScaleTarget === 1.0) {
+                cyndaquil_flameScaleTarget = 0.0; // Turunkan skala api
+            } else {
+                cyndaquil_flameScaleTarget = 1.0; // Naikkan skala api
+            }
+            e.preventDefault();
+        }
     }
   });
   window.addEventListener("keyup", (e) => {
@@ -652,6 +767,68 @@ function main() {
       }
     });
 
+    // --- CYNDAQUIL ANIMATION LOGIC (Menggunakan LIBS_CYNDAQUIL) ---
+        // Head Rotation
+        if (cyndaquil_body.animate) {
+            cyndaquil_body.animate(timeInSeconds);
+        }
+
+        // Panggil animate pada anak-anak Cyndaquil, terutama lengan dan kepala (jika mereka punya logika animate)
+        cyndaquil_body.childs.forEach((child) => {
+            if (child.animate) {
+                child.animate(timeInSeconds);
+            }
+        });
+
+        cyndaquil_currentHeadRotationY = LIBS_CYNDAQUIL.lerp(cyndaquil_currentHeadRotationY, cyndaquil_targetHeadRotationY, LERP_SPEED);
+        if (Math.abs(cyndaquil_currentHeadRotationY - cyndaquil_targetHeadRotationY) < EPSILON && cyndaquil_targetHeadRotationY !== 0) {
+            cyndaquil_targetHeadRotationY = 0;
+        }
+        const headRotYMatrix = LIBS.get_I4(); 
+        LIBS.rotateY(headRotYMatrix, cyndaquil_currentHeadRotationY); 
+        cyndaquil_head.MOVE_MATRIX = headRotYMatrix; 
+
+        // Jump Logic
+        let cyndaquil_jumpOffset = 0;
+        if (cyndaquil_isJumping) {
+            cyndaquil_jumpTime++;
+            const t_norm = cyndaquil_jumpTime / JUMP_DURATION;
+            // Formula parabola: -4 * t_norm^2 + 4 * t_norm
+            cyndaquil_jumpOffset = (-4 * t_norm * t_norm + 4 * t_norm) * JUMP_HEIGHT;
+            
+            if (cyndaquil_jumpTime >= JUMP_DURATION) {
+                cyndaquil_isJumping = false;
+                cyndaquil_jumpTime = 0;
+                cyndaquil_jumpOffset = 0;
+                cyndaquil_flameScaleTarget = cyndaquil_manualScaleTarget;
+            }
+        }
+
+        // Flame Scaling
+        cyndaquil_currentFlameScale = LIBS_CYNDAQUIL.lerp(cyndaquil_currentFlameScale, cyndaquil_flameScaleTarget, FLAME_LERP_SPEED);
+        const flameScaleMatrix = LIBS.get_I4(); 
+        flameScaleMatrix[0] = cyndaquil_currentFlameScale;
+        flameScaleMatrix[5] = cyndaquil_currentFlameScale;
+        flameScaleMatrix[10] = cyndaquil_currentFlameScale;
+        cyndaquil_flame.MOVE_MATRIX = flameScaleMatrix;
+
+        // Bobbing/Breathing
+        const CYNDAQUIL_BASE_Y_OFFSET = 6.5; // <-- Konstanta baru untuk Y dasar
+        const bobY = cyndaquil_isJumping ? 0 : Math.sin(timeInSeconds * BREATHING_SPEED) * SUBTLE_BOB_AMPLITUDE; 
+        const cyndaquil_bodyTranslationY = CYNDAQUIL_BASE_Y_OFFSET + bobY + cyndaquil_jumpOffset;
+        let CYNDAQUIL_BASE_MATRIX = LIBS.get_I4();
+        LIBS.translateY(CYNDAQUIL_BASE_MATRIX, cyndaquil_bodyTranslationY);
+
+        // Limb Rotation (Walk/Stance animation)
+        const limbAngle = cyndaquil_isJumping ? 0 : Math.sin(timeInSeconds * CYNDAQUIL_WALK_SPEED) * CYNDAQUIL_LIMB_ANGLE_MULTIPLIER;
+        
+        if (cyndaquil_rightLeg.setRotation) cyndaquil_rightLeg.setRotation(limbAngle);
+        if (cyndaquil_leftLeg.setRotation) cyndaquil_leftLeg.setRotation(-limbAngle);
+        if (cyndaquil_rightArm.setRotation) cyndaquil_rightArm.setRotation(-limbAngle * 0.6);
+        if (cyndaquil_leftArm.setRotation) cyndaquil_leftArm.setRotation(limbAngle * 0.6);
+        // -----------------------------------------------------------------
+
+
     if (typeof ty_body.tick === "function") {
       ty_body.tick(timeInSeconds);
     }
@@ -692,6 +869,24 @@ function main() {
     // Hisuian Typhlosion render
     GL.disable(GL.CULL_FACE);
     htyphlosion.render(HTYPHLOSION_MODEL_MATRIX);
+
+     // === CYNDAQUIL RENDER (Kiri) ===
+        const CYNDAQUIL_MODEL_MATRIX = LIBS.get_I4();
+        LIBS.scale(CYNDAQUIL_MODEL_MATRIX, 0.5, 0.5, 0.5);
+        LIBS.translateX(CYNDAQUIL_MODEL_MATRIX, -6.5);
+        //LIBS.translateY(CYNDAQUIL_MODEL_MATRIX, 6.5);
+        LIBS.translateZ(CYNDAQUIL_MODEL_MATRIX, 5);
+
+        const CyndaquilRenderMatrix = LIBS.get_I4();
+        LIBS.multiply(CyndaquilRenderMatrix, CYNDAQUIL_BASE_MATRIX);
+        LIBS.multiply(CyndaquilRenderMatrix, CYNDAQUIL_MODEL_MATRIX);
+
+         
+        GL.disable(GL.CULL_FACE);
+        cyndaquil_body.render(CyndaquilRenderMatrix);
+         cyndaquil_leftLeg.render(CyndaquilRenderMatrix);
+         cyndaquil_rightLeg.render(CyndaquilRenderMatrix);
+        GL.enable(GL.CULL_FACE);
 
     // === TYPHLOSION ====
     const TYPHLOSION_MODEL_MATRIX = LIBS.get_I4();

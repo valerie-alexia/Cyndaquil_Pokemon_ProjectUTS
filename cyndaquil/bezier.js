@@ -10,6 +10,3 @@ export function getBezierPoint(t, p0, p1, p2, p3) {
    var y = omt3 * p0[1] + 3 * omt2 * t * p1[1] + 3 * omt * t2 * p2[1] + t3 * p3[1];
    return [x, y];
 }
-
-
-

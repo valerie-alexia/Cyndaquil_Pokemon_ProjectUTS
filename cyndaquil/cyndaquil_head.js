@@ -1,65 +1,50 @@
+import { LIBS_CYNDAQUIL as LIBS } from "../environment/libs2.js";
 import { Shape } from "./shape.js";
 import { getBezierPoint } from "./bezier.js";
 import { mat4 } from "https://cdn.jsdelivr.net/npm/gl-matrix@3.4.3/esm/index.js";
 
-
-const Y_BASE_OFFSET = 1.0;
+const Y_BASE_OFFSET = 1.2;
 const X_SHIFT_ALL = -6.0;
 const X_SHIFT_SN = X_SHIFT_ALL;
 const X_SHIFT_HD = -4.8 - 2.0;
 const Y_NECK_START = Y_BASE_OFFSET - 2.5;
-
-
 const Y_GLOBAL_TO_LOCAL_CORRECTION = 1.5;
-
 
 const GL_TRIANGLES = 4;
 const GL_LINE_STRIP = 3;
-
 
 export class HeadShape extends Shape {
    constructor(GL, SHADER_PROGRAM, _position, _color, _MMatrix) {
        super(GL, SHADER_PROGRAM, _position, _color, _MMatrix);
        LIBS.set_I4(this.POSITION_MATRIX);
 
-
        this.LOCAL_MATRIX = mat4.create();
        mat4.identity(this.LOCAL_MATRIX);
-
 
        const HEAD_LEAN_FORWARD = LIBS.degToRad(-1);
        mat4.rotateZ(this.POSITION_MATRIX, this.POSITION_MATRIX, HEAD_LEAN_FORWARD);
 
-
        this.createHeadGeometry();
    }
-
 
    draw(parentMatrix, VMatrix, PMatrix) {
        let localFinalMatrix = mat4.create();
        mat4.multiply(localFinalMatrix, this.POSITION_MATRIX, this.LOCAL_MATRIX);
 
-
        let MMatrix = mat4.create();
        mat4.multiply(MMatrix, parentMatrix, localFinalMatrix);
 
-
        super.draw(MMatrix, VMatrix, PMatrix);
-
 
        for (const child of this.childs) {
            child.draw(MMatrix, VMatrix, PMatrix);
        }
    }
 
-
-
-
    createHeadGeometry() {
        const color_blue = [0.0, 0.3, 0.35];
        const color_cream = [0.96, 0.9, 0.72];
        const color_black = [0.0, 0.0, 0.0];
-
 
        var vertices_snout = [];
        var faces_snout = [];
@@ -76,10 +61,8 @@ export class HeadShape extends Shape {
        var num_sections = circle_sections.length;
        var circle_segments = 60;
 
-
        var top_points = [];
        var bottom_points = [];
-
 
        const snout_y_offset = Y_BASE_OFFSET - 1.5;
        for (var i = 0; i < num_sections; i++) {
@@ -91,18 +74,15 @@ export class HeadShape extends Shape {
            bottom_points.push([x, snout_y_offset - r * 0.3]);
        }
 
-
        var p_top_0 = top_points[0];
        var p_top_3 = top_points[num_sections - 1];
        var p_top_1 = [p_top_0[0] + 1.5, p_top_0[1] + 0.8];
        var p_top_2 = [p_top_3[0] - 1.5, p_top_3[1] + 0.3];
 
-
        var p_bottom_0 = bottom_points[0];
        var p_bottom_3 = bottom_points[num_sections - 1];
        var p_bottom_1 = [p_bottom_0[0] + 1.5, p_bottom_0[1] - 0.5];
        var p_bottom_2 = [p_bottom_3[0] - 1.5, p_bottom_3[1] - 0.05];
-
 
        for (var i = 0; i < num_sections; i++) {
            var x_pos = circle_sections[i][0] + X_SHIFT_SN;
@@ -289,7 +269,3 @@ export class HeadShape extends Shape {
        this.addObject(eyeGeo.vertices, eyeFaces, LIBS.get_I4(), GL_TRIANGLES);
    }
 }
-
-
-
-
