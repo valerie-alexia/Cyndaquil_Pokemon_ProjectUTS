@@ -32,10 +32,10 @@ export class Terrain {
         const rockPositions = [
             { x: -9, z: -6, s: 3.0, r: 0.5 },  // Kiri Belakang (Besar)
             { x: 10, z: -5, s: 2.5, r: 1.2 },  // Kanan Belakang
-            { x: -11, z: 4, s: 2.0, r: 2.5 },  // Kiri Samping
+            { x: -11, z: 4, s: 1.1, r: 2.5 },  // Kiri Samping
             { x: 8, z: 7, s: 1.8, r: 0.2 },    // Kanan Depan
             { x: 0, z: -11, s: 3.5, r: 0.8 },  // Belakang Tengah (Jauh)
-            { x: -6, z: 8, s: 1.5, r: 3.0 },   // Kiri Depan
+            { x: -6, z: 8, s: 2, r: 3.0 },   // Kiri Depan
             { x: 12, z: 2, s: 2.2, r: 1.5 }    // Kanan Samping
         ];
 
@@ -61,7 +61,7 @@ export class Terrain {
             
             // FIX: Gunakan Translate Terpisah agar posisi benar
             LIBS.translateX(rockMatrix, p.x);
-            LIBS.translateY(rockMatrix, -0.5); // Tanam sedikit ke tanah
+            LIBS.translateY(rockMatrix, 1); // Tanam sedikit ke tanah
             LIBS.translateZ(rockMatrix, p.z);
             
             LIBS.rotateY(rockMatrix, p.r);
